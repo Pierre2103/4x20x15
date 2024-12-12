@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Game</title>
+    <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+    <header>
+        <h1>Welcome to the Card Game</h1>
+    </header>
+
+    <main>
+        <!-- Pseudo input section -->
+        <section id="pseudoSection">
+            <input type="text" id="pseudo" placeholder="Enter your pseudo">
+            <button id="setPseudo">Set Pseudo</button>
+        </section>
+
+        <!-- Lobby creation and join section -->
+        <section id="lobbySection">
+            <button id="createLobby">Create Lobby</button>
+            <input type="text" id="joinKey" placeholder="Enter lobby key">
+            <button id="joinLobby">Join Lobby</button>
+        </section>
+
+        <!-- Lobby info and player list -->
+        <section id="lobbyInfoSection" style="display: none;">
+            <div id="lobbyInfo"></div>
+            <div id="playerList"></div>
+            <button id="startGame" style="display: none;">Start Game</button>
+        </section>
+
+        <!-- Game section -->
+        <section id="gameSection" style="display: none;">
+            <div id="hand"></div>
+            <div id="gameActions">
+                <div id="lastCardPlayed"></div>
+                <div id="waitingPlayer"></div>
+            </div>
+        </section>
+
+        <!-- Higher or Lower mini-game -->
+        <section id="higherLowerGame" style="display: none;">
+            <h2>Higher or Lower</h2>
+            <div id="currentCards"></div>
+            <button id="higher">Higher</button>
+            <button id="lower">Lower</button>
+            <p id="higherLowerMessage"></p>
+        </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="../assets/js/game.js"></script>
+</body>
+</html>

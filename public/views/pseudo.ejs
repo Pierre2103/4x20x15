@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= title %></title>
+</head>
+<body>
+    <h1>Step 1: Set Your Pseudo</h1>
+    <input type="text" id="pseudo" placeholder="Enter your pseudo">
+    <button onclick="setPseudo()">Set Pseudo</button>
+    <script>
+        function setPseudo() {
+            const pseudo = document.getElementById("pseudo").value;
+            window.location.href = `/join?pseudo=${pseudo}`;
+        }
+    </script>
+</body>
+</html>
