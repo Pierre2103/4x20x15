@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebaseConfig";
+import { auth, db } from "../firebaseConfig.js";
 import "../styles/HomePage.scss";
 
 const HomePage = () => {
@@ -42,7 +42,7 @@ const HomePage = () => {
         </div>
       )}
       <h1>Bienvenue sur 4x20+15</h1>
-      <button className="play-button" onClick={() => alert("Jouer !")}>
+      <button className="play-button" onClick={() => (window.location.href = "/room")}>
         Jouer
       </button>
       <button className="profile-button" onClick={() => (window.location.href = "/profile")}>

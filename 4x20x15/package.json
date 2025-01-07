@@ -7,6 +7,7 @@
   "license": "ISC",
   "description": "",
   "private": true,
+  "type": "module",
   "dependencies": {
     "firebase": "^9.6.1",
     "jdenticon": "^3.3.0",
@@ -14,7 +15,9 @@
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.0.0",
     "react-scripts": "5.0.0",
-    "sass": "^1.83.1"
+    "sass": "^1.83.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
   },
   "scripts": {
     "start": "react-scripts start",

@@ -1,8 +1,9 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import AuthPage from "./pages/AuthPage";
-import HomePage from "./pages/HomePage";
-import ProfilePage from "./pages/ProfilePage";
+import AuthPage from "./pages/AuthPage.js";
+import HomePage from "./pages/HomePage.js";
+import ProfilePage from "./pages/ProfilePage.js";
+import RoomPage from "./pages/RoomPage.js";
 
 const App = () => {
   const isAuthenticated = !!localStorage.getItem("user"); // Vérifie si un utilisateur est connecté
@@ -20,6 +21,10 @@ const App = () => {
       <Route
         path="/profile"
         element={isAuthenticated ? <ProfilePage /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/room"
+        element={isAuthenticated ? <RoomPage /> : <Navigate to="/" />}
       />
     </Routes>
   );

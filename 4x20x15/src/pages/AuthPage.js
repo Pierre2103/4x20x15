@@ -5,7 +5,7 @@ import {
   createUserWithEmailAndPassword,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore"; // Import Firestore functions
-import { auth, googleProvider, db } from "../firebaseConfig"; // Import Firestore
+import { auth, googleProvider, db } from "../firebaseConfig.js"; // Import Firestore
 import "../styles/AuthPage.scss";
 
 const AuthPage = () => {

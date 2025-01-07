@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { auth, db } from "../firebaseConfig";
+import { auth, db } from "../firebaseConfig.js";
 import { update as jdenticonUpdate } from "jdenticon";
 import { onAuthStateChanged } from "firebase/auth";
 import "../styles/ProfilePage.scss";

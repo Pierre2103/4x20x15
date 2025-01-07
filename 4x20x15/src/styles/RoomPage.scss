@@ -1,0 +1,147 @@
+@import './index.scss';
+
+
+/* Styles globaux */
+.room-page {
+  font-family: 'Outfit', sans-serif;
+  background-color: $background;
+  color: $light1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: $light1;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  /* Conteneur des boutons */
+  .button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 400px;
+
+    button {
+      background-color: $dark1;
+      color: $light1;
+      border: none;
+      padding: 15px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+      text-align: center;
+      transition: all 0.3s ease-in-out;
+      cursor: pointer;
+
+      &:hover,
+      &:focus {
+        background-color: $light2;
+        color: $background;
+        outline: none;
+      }
+    }
+  }
+
+  /* Input pour rejoindre une room */
+  .room-input {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+
+    input {
+      width: 100%;
+      max-width: 400px;
+      padding: 15px;
+      border: 2px solid $dark1;
+      border-radius: 8px;
+      background-color: $dark2;
+      color: $light1;
+      font-size: 1rem;
+      margin-bottom: 15px;
+      transition: border 0.3s ease-in-out;
+
+      &::placeholder {
+        color: lighten($light1, 20%);
+      }
+
+      &:focus {
+        border: 2px solid $light2;
+        outline: none;
+      }
+    }
+
+    button {
+      background-color: $dark1;
+      color: $light1;
+      border: none;
+      padding: 15px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+
+      &:hover,
+      &:focus {
+        background-color: $light2;
+        color: $background;
+        outline: none;
+      }
+    }
+  }
+
+  /* Liste des joueurs */
+  .room-details {
+    margin-top: 30px;
+    width: 100%;
+    max-width: 400px;
+    background-color: $dark2;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+
+    h2 {
+      font-size: 1.5rem;
+      color: $light1;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+
+      li {
+        background-color: $dark1;
+        color: $light1;
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background-color: $light2;
+        }
+
+        .username {
+          font-size: 1rem;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}
