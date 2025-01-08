@@ -1,3 +1,4 @@
+//? backend/utils/firebaseUtils.js
 import { db, doc, getDoc, setDoc, updateDoc, deleteDoc, collection } from "../../src/firebaseConfig.js";
 
 // Récupère un document Firestore

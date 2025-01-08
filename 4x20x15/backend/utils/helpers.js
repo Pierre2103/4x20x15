@@ -1,3 +1,4 @@
+//? backend/utils/helpers.js
 export const generateRoomId = () => {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     return Array(5)
