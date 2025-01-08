@@ -4,11 +4,17 @@ import { auth, db } from "../firebaseConfig.js";
 import { update as jdenticonUpdate } from "jdenticon";
 import { onAuthStateChanged } from "firebase/auth";
 import "../styles/ProfilePage.scss";
+import arrow_back from "../img/icons/arrow-back.svg";
 
 const ProfilePage = () => {
   const [username, setUsername] = useState(""); // État pour le pseudo
   const [avatar, setAvatar] = useState(""); // État pour l'avatar
   const [isLoading, setIsLoading] = useState(true); // État pour le chargement
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    window.location.href = "/";
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -47,7 +53,7 @@ const ProfilePage = () => {
     if (avatar && typeof avatar === "string" && avatar.trim() !== "") {
       setTimeout(() => {
         jdenticonUpdate(".avatar");
-      }, 1); // obligatoire pour que Jdenticon fonctionne correctement
+      }, 0); // obligatoire pour que Jdenticon fonctionne correctement
     }
   }, [avatar]);
 
@@ -80,26 +86,40 @@ const ProfilePage = () => {
   if (!auth.currentUser) return <p>Veuillez vous connecter pour accéder à cette page.</p>;
 
   return (
-    <div className="profile-page">
-      <h1>Profil</h1>
-      <div className="avatar-section">
-        <svg
-          className="avatar"
-          data-jdenticon-value={avatar || "default"}
-          width="200"
-          height="200"
-        />
-        <button onClick={generateRandomAvatar}>Générer un avatar</button>
-      </div>
-      <div className="username-section">
-        <label htmlFor="username">Pseudo :</label>
-        <input
-          type="text"
-          id="username"
-          value={username} // État local
-          onChange={(e) => setUsername(e.target.value)} // Mise à jour en temps réel
-        />
-        <button onClick={updateUsername}>Mettre à jour le pseudo</button>
+    <div>
+      <button className="back-button" onClick={() => (window.location.href = "/home")}>
+        <img src={arrow_back} alt="Retour" />
+      </button>
+      <div className="profile-page">
+        <h1>Profil</h1>
+        <div className="avatar-section">
+          <label>Avatar :</label>
+          <div className="avatar-body">
+            <button onClick={generateRandomAvatar}>Générer un autre avatar</button>
+            <svg
+              className="avatar"
+              data-jdenticon-value={avatar || "default"}
+              width="60"
+              height="60"
+            />
+          </div>
+        </div>
+        <div className="username-section">
+          <label htmlFor="username">Pseudo :</label>
+          <div className="username-body">
+            <input
+              type="text"
+              id="username"
+              value={username} // État local
+              onChange={(e) => setUsername(e.target.value)} // Mise à jour en temps réel
+            />
+            <button onClick={updateUsername}>OK</button>
+          </div>
+        </div>
+        
+        <button className="logout-button" onClick={handleLogout}>
+            Déconnexion
+          </button>
       </div>
     </div>
   );

@@ -2,10 +2,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap');
 
 /* Variables globales */
-$background: #012a36;
-$dark1: #7e52a0;
-$dark2: #29274c;
-$light1: #e6bccd;
+$background: #121212;
+$foreground: #171717;
+$font-primary: #efefef;
+$btn-primary: #bb1d1d;
 $light2: #d295bf;
 
 /* Configuration globale */
@@ -18,8 +18,20 @@ $light2: #d295bf;
 body {
   font-family: 'Outfit', sans-serif;
   background-color: $background;
-  color: $light1;
-  min-height: 100vh;
+  color: $font-primary;
+  // maxheight: 100vh !important;
+  // width: 100vw !important;
+  // overflow-x: hidden;
+  height: 80vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;

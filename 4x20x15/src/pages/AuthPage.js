@@ -7,6 +7,7 @@ import {
 import { doc, setDoc, getDoc } from "firebase/firestore"; // Import Firestore functions
 import { auth, googleProvider, db } from "../firebaseConfig.js"; // Import Firestore
 import "../styles/AuthPage.scss";
+import google_logo from "../img/icons/google.png";
 
 const AuthPage = () => {
   const [isRegistering, setIsRegistering] = useState(false);
@@ -90,12 +91,12 @@ const AuthPage = () => {
         {isRegistering ? "S'inscrire" : "Se connecter"}
       </button>
       <br />
-      <button onClick={handleLoginWithGoogle}>
-        {isRegistering ? "S'inscrire avec Google" : "Se connecter avec Google"}
+      <button onClick={handleLoginWithGoogle} className="google-button">
+        {/* {isRegistering ? "S'inscrire avec Google" : "Se connecter avec Google"} */}
+        <img src={google_logo} alt="Google" />
       </button>
       <br />
       <p
-        style={{ cursor: "pointer", color: "blue", textDecoration: "underline" }}
         onClick={() => setIsRegistering(!isRegistering)}
       >
         {isRegistering ? "Déjà un compte ? Connectez-vous ici" : "Pas encore de compte ? Inscrivez-vous ici"}

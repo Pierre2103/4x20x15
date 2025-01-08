@@ -3,30 +3,63 @@
 /* Styles spécifiques à la page Home */
 .home-page {
     text-align: center;
-    margin-top: 50px;
+    // margin-bottom: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 100px;
+      animation: fadeIn 0.5s ease-in-out; // Réutilisation de l'animation globale
+
+      .avatar {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 10px;
+      }
+
+      h2 {
+        font-size: 20px;
+        font-weight: 600;
+        color: $font-primary;
+        margin-bottom: 10px;
+      }
+    }
   
     h1 {
       font-size: 26px;
       font-weight: 600;
-      color: $light2;
-      margin-bottom: 30px;
+      color: $font-primary;
+      margin-bottom: 50px;
       animation: slideDown 0.5s ease-in-out; // Réutilisation de l'animation globale
     }
-  
-    button {
-      width: 80%;
-      max-width: 300px;
-      padding: 12px;
-      margin: 10px 0;
-      font-size: 16px;
-      font-weight: 600;
-      border: none;
-      border-radius: 8px;
-      background-color: $dark2;
-      color: $light1;
-      cursor: pointer;
-      transition: transform 0.2s ease, background-color 0.3s ease;
-      animation: pop 0.3s ease-in-out; // Réutilisation de l'animation globale
+
+    .button-group {
+      background-color: $foreground;
+      width: 300px;
+      max-width: 400px;
+      padding: 20px;
+      border-radius: 12px;
+      animation: fadeIn 0.5s ease-in-out;
+
+      button {
+        width: 80%;
+        max-width: 300px;
+        padding: 12px;
+        margin: 20px 0;
+        font-size: 16px;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        background-color: $btn-primary;
+        color: $font-primary;
+        cursor: pointer;
+        transition: transform 0.2s ease, background-color 0.3s ease;
+        animation: pop 0.3s ease-in-out;
+      }
     }
   }
   
