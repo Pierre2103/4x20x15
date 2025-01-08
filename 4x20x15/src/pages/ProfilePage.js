@@ -1,3 +1,4 @@
+//? src/pages/ProfilePage.js
 import React, { useEffect, useState } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../firebaseConfig.js";
@@ -11,11 +12,54 @@ const ProfilePage = () => {
   const [avatar, setAvatar] = useState(""); // État pour l'avatar
   const [isLoading, setIsLoading] = useState(true); // État pour le chargement
 
+  // Génère un avatar aléatoire
+  const generateRandomAvatar = async () => {
+    try {
+      const randomString = Math.random().toString(36).substring(2, 10);
+      setAvatar(randomString);
+
+      const userDoc = doc(db, "users", auth.currentUser.uid);
+      await updateDoc(userDoc, { avatar: randomString });
+    } catch (error) {
+      console.error(
+        "Erreur lors de la génération de l'avatar :",
+        error.message
+      );
+    }
+  };
+
+  // Met à jour le pseudo dans Firestore
+  const updateUsername = async () => {
+    if (!auth.currentUser || !username.trim()) return;
+    const userDoc = doc(db, "users", auth.currentUser.uid);
+
+    try {
+      await updateDoc(userDoc, { username });
+    } catch (error) {
+      console.error("Erreur de mise à jour du pseudo :", error.message);
+    }
+  };
+
+  // TODO: Pouvoir changer le thème de couleur et switcher entre dark et light mode
+  // TODO: Enregistrer le thème de couleur dans Firestore pour chaque utilisateur
+  const changeColorTheme = () => {
+    var r = document.querySelector(':root');
+    var rootStyles = getComputedStyle(r);
+    var colorRed = rootStyles.getPropertyValue('--primary-red');
+    var colorGreen = rootStyles.getPropertyValue('--primary-green');
+    var colorBlue = rootStyles.getPropertyValue('--primary-blue');
+    var colorYellow = rootStyles.getPropertyValue('--primary-yellow');
+    var currentColor = rootStyles.getPropertyValue('--primary');
+  };
+
+
+  // Déconnexion de l'utilisateur
   const handleLogout = () => {
     localStorage.removeItem("user");
     window.location.href = "/";
   };
 
+  // Charge les données utilisateur
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -26,14 +70,16 @@ const ProfilePage = () => {
 
             if (userSnapshot.exists()) {
               const userData = userSnapshot.data();
-            //   console.log("Données utilisateur récupérées :", userData);
               setUsername(userData.username || ""); // Définit le pseudo
               setAvatar(userData.avatar || "default"); // Définit l'avatar
             } else {
               console.error("Aucune donnée utilisateur trouvée dans Firestore");
             }
           } catch (error) {
-            console.error("Erreur lors du chargement des données utilisateur :", error.message);
+            console.error(
+              "Erreur lors du chargement des données utilisateur :",
+              error.message
+            );
           } finally {
             setIsLoading(false);
           }
@@ -49,6 +95,7 @@ const ProfilePage = () => {
     return () => unsubscribe(); // Nettoyage du listener
   }, []);
 
+  // Met à jour l'avatar avec Jdenticon
   useEffect(() => {
     if (avatar && typeof avatar === "string" && avatar.trim() !== "") {
       setTimeout(() => {
@@ -57,37 +104,16 @@ const ProfilePage = () => {
     }
   }, [avatar]);
 
-  const updateUsername = async () => {
-    if (!auth.currentUser || !username.trim()) return;
-    const userDoc = doc(db, "users", auth.currentUser.uid);
-
-    try {
-      await updateDoc(userDoc, { username });
-    //   alert("Pseudo mis à jour !");
-    } catch (error) {
-      console.error("Erreur de mise à jour du pseudo :", error.message);
-    }
-  };
-
-  const generateRandomAvatar = async () => {
-    try {
-      const randomString = Math.random().toString(36).substring(2, 10);
-      setAvatar(randomString);
-
-      const userDoc = doc(db, "users", auth.currentUser.uid);
-      await updateDoc(userDoc, { avatar: randomString });
-    //   alert("Avatar mis à jour !");
-    } catch (error) {
-      console.error("Erreur lors de la génération de l'avatar :", error.message);
-    }
-  };
-
   if (isLoading) return <p>Chargement...</p>;
-  if (!auth.currentUser) return <p>Veuillez vous connecter pour accéder à cette page.</p>;
+  if (!auth.currentUser)
+    return <p>Veuillez vous connecter pour accéder à cette page.</p>;
 
   return (
     <div>
-      <button className="back-button" onClick={() => (window.location.href = "/home")}>
+      <button
+        className="back-button"
+        onClick={() => (window.location.href = "/home")}
+      >
         <img src={arrow_back} alt="Retour" />
       </button>
       <div className="profile-page">
@@ -95,7 +121,9 @@ const ProfilePage = () => {
         <div className="avatar-section">
           <label>Avatar :</label>
           <div className="avatar-body">
-            <button onClick={generateRandomAvatar}>Générer un autre avatar</button>
+            <button onClick={generateRandomAvatar}>
+              Générer un autre avatar
+            </button>
             <svg
               className="avatar"
               data-jdenticon-value={avatar || "default"}
@@ -116,10 +144,10 @@ const ProfilePage = () => {
             <button onClick={updateUsername}>OK</button>
           </div>
         </div>
-        
+
         <button className="logout-button" onClick={handleLogout}>
-            Déconnexion
-          </button>
+          Déconnexion
+        </button>
       </div>
     </div>
   );

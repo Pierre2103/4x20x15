@@ -1,27 +1,39 @@
-/* Import Google Font */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap');
+//? src/styles/index.scss
 
-/* Variables globales */
-$background: #121212;
-$foreground: #171717;
-$font-primary: #efefef;
-$btn-primary: #bb1d1d;
-$light2: #d295bf;
+:root {
+  // Variables de couleurs
+  --background-dark: #121212;
+  --card-dark: #171717;
+  --font-dark: #efefef;
+  --background-light: #ededed;
+  --card-light: #e8e8e8;
+  --font-light: #101010;
+  --primary-red: #bb1d1d;
+  --primary-blue: #1d57bb;
+  --primary-green: #176c17;
+  --primary-yellow: #cbcb2d;
 
-/* Configuration globale */
+  // Choix du thème
+  --background: var(--background-dark);
+  --card: var(--card-dark);
+  --font: var(--font-dark);
+  --primary: var(--primary-red);
+}
+// Import Google Font
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap");
+
+// Configuration globale
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+// Styles de base
 body {
-  font-family: 'Outfit', sans-serif;
-  background-color: $background;
-  color: $font-primary;
-  // maxheight: 100vh !important;
-  // width: 100vw !important;
-  // overflow-x: hidden;
+  font-family: "Outfit", sans-serif;
+  background-color: var(--background);
+  color: var(--font);
   height: 80vh;
   overflow: hidden;
   display: flex;
@@ -29,6 +41,7 @@ body {
   align-items: center;
 }
 
+// Styles du conteneur racine
 #root {
   width: 100vw;
   height: 100vh;
@@ -37,7 +50,8 @@ body {
   align-items: center;
 }
 
-/* Animations globales */
+// Animations globales
+// fadeIn: Apparition en fondu
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -49,6 +63,7 @@ body {
   }
 }
 
+// slideDown: Apparition en glissement vers le bas
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -60,6 +75,7 @@ body {
   }
 }
 
+// pop: Apparition en pop (effet de rebond)
 @keyframes pop {
   0% {
     transform: scale(0.9);

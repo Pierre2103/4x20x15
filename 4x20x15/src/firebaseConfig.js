@@ -1,7 +1,16 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDoc, updateDoc,  deleteDoc, collection } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+} from "firebase/firestore";
 
+// Configuration de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyArMCsutRol8mHHpZPl6LP9cYGMlGuANTU",
   authDomain: "x4x20x15x.firebaseapp.com",
@@ -12,15 +21,10 @@ const firebaseConfig = {
   measurementId: "G-F12CKVZ849",
 };
 
-// Initialize Firebase
+// Initialisation de Firebase, Firebase Auth, Google Auth Provider et Firestore
 const app = initializeApp(firebaseConfig);
-
-// Initialize Firebase Authentication and Google Provider
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+export const db = getFirestore(app);
 
-// Initialize Firestore
-export const db = getFirestore(app); // Export de Firestore
-
-
-export { doc, setDoc, updateDoc, getDoc, collection, deleteDoc};
+export { collection, doc, getDoc, setDoc, updateDoc, deleteDoc };

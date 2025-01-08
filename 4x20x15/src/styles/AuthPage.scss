@@ -1,7 +1,9 @@
-// importer les variables a partir de index.scss
-@import './index.scss';
+//? src/styles/AuthPage.scss
 
-/* Styles spécifiques à la page Login */
+// importer les variables a partir de index.scss
+@import "./index.scss";
+
+// Styles spécifiques à la page Login
 .auth-page {
   width: 300px;
   max-width: 400px;
@@ -9,7 +11,7 @@
   max-height: 600px;
   padding: 20px;
   border-radius: 12px;
-  background-color: $foreground;
+  background-color: var(--card);
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
   animation: fadeIn 0.5s ease-in-out;
   display: flex;
@@ -17,15 +19,17 @@
   justify-content: center;
   align-items: center;
 
+  // Titre
   h1 {
     font-size: 24px;
     font-weight: 600;
     text-align: center;
     margin-bottom: 20px;
-    color: $font-primary;
+    color: var(--font);
     animation: slideDown 0.5s ease-in-out;
   }
 
+  // Saisie utilisateur
   input {
     width: 100%;
     padding: 12px;
@@ -33,12 +37,12 @@
     border: none;
     border-radius: 8px;
     font-size: 16px;
-    font-family: 'Outfit', sans-serif;
-    background-color: $background;
-    color: $btn-primary;
-    transition: transform 0.2s ease;
+    font-family: "Outfit", sans-serif;
+    background-color: --background;
+    color: var(--primary);
   }
 
+  // Bouton de validation (Connexion / Inscription)
   button {
     width: 100%;
     padding: 12px;
@@ -47,17 +51,18 @@
     font-weight: 600;
     border: none;
     border-radius: 8px;
-    background-color: $btn-primary;
-    color: $font-primary;
-    cursor: pointer;
+    background-color: var(--primary);
+    color: var(--font);
     animation: pop 0.3s ease-in-out;
   }
 
+  // Bouton de connexion avec Google
   .google-button {
     width: 50px;
     height: 50px;
     border-radius: 50%;
 
+    // Logo Google
     img {
       width: 25px;
       margin-right: 10px;
@@ -68,13 +73,6 @@
     margin-top: 15px;
     font-size: 14px;
     text-align: center;
-    color: $btn-primary;
-
-    span {
-      color: $light2;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: underline;
-    }
+    color: var(--primary);
   }
 }

@@ -9,6 +9,10 @@ import GamePage from "./pages/GamePage.js";
 const App = () => {
   const isAuthenticated = !!localStorage.getItem("user"); // Vérifie si un utilisateur est connecté
 
+  // Définition des routes:
+  // - Si l'utilisateur est connecté, redirige vers la page d'accueil
+  // - Sinon, redirige vers la page de connexion
+  // - Les autres routes nécessitent une connexion
   return (
     <Routes>
       <Route

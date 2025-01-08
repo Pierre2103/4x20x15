@@ -1,65 +1,72 @@
-@import './index.scss';
+//? src/styles/HomePage.scss
 
-/* Styles spécifiques à la page Home */
+// importer les variables a partir de index.scss
+@import "./index.scss";
+
+// Styles spécifiques à la page Home
 .home-page {
-    text-align: center;
-    // margin-bottom: 100px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  // Informations utilisateur (avatar + nom)
+  .user-info {
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin-bottom: 100px;
+    animation: fadeIn 0.5s ease-in-out;
 
-    .user-info {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 100px;
-      animation: fadeIn 0.5s ease-in-out; // Réutilisation de l'animation globale
-
-      .avatar {
-        width: 100px;
-        height: 100px;
-        margin-bottom: 10px;
-      }
-
-      h2 {
-        font-size: 20px;
-        font-weight: 600;
-        color: $font-primary;
-        margin-bottom: 10px;
-      }
+    // Avatar
+    .avatar {
+      width: 100px;
+      height: 100px;
+      margin-bottom: 10px;
     }
-  
-    h1 {
-      font-size: 26px;
+
+    // Nom
+    h2 {
+      font-size: 20px;
       font-weight: 600;
-      color: $font-primary;
-      margin-bottom: 50px;
-      animation: slideDown 0.5s ease-in-out; // Réutilisation de l'animation globale
-    }
-
-    .button-group {
-      background-color: $foreground;
-      width: 300px;
-      max-width: 400px;
-      padding: 20px;
-      border-radius: 12px;
-      animation: fadeIn 0.5s ease-in-out;
-
-      button {
-        width: 80%;
-        max-width: 300px;
-        padding: 12px;
-        margin: 20px 0;
-        font-size: 16px;
-        font-weight: 600;
-        border: none;
-        border-radius: 8px;
-        background-color: $btn-primary;
-        color: $font-primary;
-        cursor: pointer;
-        transition: transform 0.2s ease, background-color 0.3s ease;
-        animation: pop 0.3s ease-in-out;
-      }
+      color: var(--font);
+      margin-bottom: 10px;
     }
   }
-  
+
+  // Titre
+  h1 {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--font);
+    margin-bottom: 50px;
+    animation: slideDown 0.5s ease-in-out;
+  }
+
+  // Container des boutons (Jouer / Profil)
+  .button-group {
+    background-color: var(--card);
+    width: 300px;
+    max-width: 400px;
+    padding: 20px;
+    border-radius: 12px;
+    animation: fadeIn 0.5s ease-in-out;
+
+    // Boutons
+    button {
+      width: 80%;
+      max-width: 300px;
+      padding: 12px;
+      margin: 20px 0;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      background-color: var(--primary);
+      color: var(--font);
+      cursor: pointer;
+      transition: transform 0.2s ease, background-color 0.3s ease;
+      animation: pop 0.3s ease-in-out;
+    }
+  }
+}

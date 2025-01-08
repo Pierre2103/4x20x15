@@ -1,3 +1,4 @@
+//? src/pages/RoomPage.js
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { auth } from "../firebaseConfig.js";
@@ -6,12 +7,14 @@ import "../styles/RoomPage.scss";
 import arrow_back from "../img/icons/arrow-back.svg";
 import cancel from "../img/icons/cancel.svg";
 
-const socket = io("http://192.168.1.29:3001"); // Remplacez par votre backend
+// const socket = io("http://192.168.1.29:3001"); // Remplacez par votre backend
+const socket = io("http://192.168.14.162:3001"); // Remplacez par votre backend
 
 const RoomPage = () => {
   const [roomId, setRoomId] = useState("");
   const [currentRoom, setCurrentRoom] = useState(null);
 
+  // Crée une room
   const createRoom = () => {
     const user = auth.currentUser;
 
@@ -25,6 +28,7 @@ const RoomPage = () => {
     });
   };
 
+  // Rejoint une room
   const joinRoom = () => {
     const user = auth.currentUser;
 
@@ -39,18 +43,17 @@ const RoomPage = () => {
     });
   };
 
+  // Supprime un joueur de la room
   const removePlayer = (playerId) => {
     if (!currentRoom || currentRoom.hostId !== auth.currentUser.uid) {
       alert("Seul l'hôte peut supprimer un joueur.");
       return;
     }
 
-    console.log(
-      `Demande de suppression pour le joueur ${playerId} dans la room ${currentRoom.id}`
-    );
     socket.emit("removePlayer", { roomId: currentRoom.id, playerId });
   };
 
+  // Démarre la partie
   const startGame = () => {
     if (!currentRoom || currentRoom.hostId !== auth.currentUser.uid) {
       alert("Seul l'hôte peut commencer la partie.");
@@ -60,6 +63,11 @@ const RoomPage = () => {
     socket.emit("startGame", { roomId: currentRoom.id });
   };
 
+  // Écoute les événements, pour:
+  // - Créer une room
+  // - Mettre à jour une room
+  // - Démarrer une partie
+  // - Supprimer un joueur de la room
   useEffect(() => {
     socket.on("roomCreated", (data) => {
       setRoomId(data.roomId);
@@ -84,43 +92,44 @@ const RoomPage = () => {
         console.error("Données manquantes dans l'événement gameStarted");
       }
     });
-    
 
     socket.on("removedFromRoom", () => {
+      // setCurrentRoom(null);
+    console.log("removedFromRoom");
       window.location.href = "/room"; // Redirige vers la page d'accueil ou une autre page
     });
 
-    return () => socket.off();
+    return () => socket.off(); // Nettoyer les listeners pour éviter les fuites
   }, []);
 
-useEffect(() => {
-  const unsubscribe = auth.onAuthStateChanged((user) => {
-    if (user) {
-      socket.emit("registerUser", user.uid);
-      console.log(`Émission de registerUser avec userId=${user.uid}`);
-    } else {
-      console.error("Aucun utilisateur connecté pour registerUser");
-    }
-  });
-  return () => unsubscribe(); // Nettoyer le listener pour éviter les fuites
-}, []);
+  // Enregistre l'utilisateur connecté
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        socket.emit("registerUser", user.uid);
+      } else {
+        console.error("Aucun utilisateur connecté pour registerUser");
+      }
+    });
+    return () => unsubscribe(); // Nettoyer le listener pour éviter les fuites
+  }, []);
 
+  // Supprime le joueur de la room avant de quitter la page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (currentRoom && currentRoom.status !== "playing" && auth.currentUser) {
+        socket.emit("removePlayer", {
+          roomId: currentRoom.id,
+          playerId: auth.currentUser.uid,
+        });
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
-useEffect(() => {
-  const handleBeforeUnload = () => {
-    if (currentRoom && currentRoom.status !== "playing" && auth.currentUser) {
-      socket.emit("removePlayer", { roomId: currentRoom.id, playerId: auth.currentUser.uid });
-    }
-  };
-
-  // Ajoute l'événement lors de la fermeture ou du rechargement
-  window.addEventListener("beforeunload", handleBeforeUnload);
-
-  return () => {
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-  };
-}, [currentRoom]);
-
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [currentRoom]);
 
   return (
     <div className="room-page">
@@ -130,9 +139,12 @@ useEffect(() => {
             className="back-button"
             onClick={() => {
               if (currentRoom && auth.currentUser) {
-                socket.emit("removePlayer", { roomId: currentRoom.id, playerId: auth.currentUser.uid });
+                socket.emit("removePlayer", {
+                  roomId: currentRoom.id,
+                  playerId: auth.currentUser.uid,
+                });
               }
-              window.location.reload();
+              window.location.href = "/home";
             }}
           >
             <img src={arrow_back} alt="Retour" />
@@ -141,7 +153,7 @@ useEffect(() => {
           <div className="room-input">
             <input
               type="text"
-              placeholder="Entrer l'ID de la Room"
+              placeholder="Room ID"
               value={roomId}
               onChange={(e) => setRoomId(e.target.value.toUpperCase())}
             />
