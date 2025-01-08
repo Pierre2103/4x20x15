@@ -17,20 +17,55 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Étape 2 : Aller dans le répertoire du code source (4x20x15)
-      - name: Change directory
-        run: cd 4x20x15
+      # Étape 2 : Afficher la structure du répertoire
+      - name: Debug directory structure (after checkout)
+        run: |
+          echo "Structure des fichiers après checkout :"
+          ls -alR
 
       # Étape 3 : Configurer Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18' # Adaptez à votre version de Node.js
+          node-version: '18'
 
-      # Étape 4 : Installer les dépendances
+      # Étape 4 : Vérifier la version de Node.js et npm
+      - name: Debug Node.js and npm versions
+        run: |
+          echo "Version de Node.js :"
+          node -v
+          echo "Version de npm :"
+          npm -v
+
+      # Étape 5 : Afficher les fichiers dans le répertoire `4x20x15`
+      - name: Debug directory structure (4x20x15)
+        run: |
+          echo "Structure des fichiers dans 4x20x15 :"
+          ls -al ./4x20x15
+
+      # Étape 6 : Installer les dépendances
       - name: Install dependencies
-        run: npm install
+        run: |
+          echo "Installation des dépendances avec npm install..."
+          npm install
+        working-directory: ./4x20x15
 
-      # Étape 5 : Lancer les tests avec Jest
+      # Étape 7 : Vérifier les dépendances installées
+      - name: Debug installed dependencies
+        run: |
+          echo "Liste des dépendances installées dans node_modules :"
+          ls -al ./node_modules
+        working-directory: ./4x20x15
+
+      # Étape 8 : Lancer les tests avec Jest
       - name: Run tests
-        run: npm test
+        run: |
+          echo "Lancement des tests avec Jest..."
+          npm test
+        working-directory: ./4x20x15
+
+      # Étape 9 : Debug des fichiers restants après tests
+      - name: Debug directory structure (after tests)
+        run: |
+          echo "Structure des fichiers après les tests :"
+          ls -alR ./4x20x15
