@@ -7,8 +7,8 @@ import "../styles/RoomPage.scss";
 import arrow_back from "../img/icons/arrow-back.svg";
 import cancel from "../img/icons/cancel.svg";
 
-// const socket = io("http://192.168.1.29:3001"); // Remplacez par votre backend
-const socket = io("http://192.168.14.162:3001"); // Remplacez par votre backend
+const socket = io("http://192.168.1.29:3001"); // PC de bureau
+// const socket = io("http://192.168.14.162:3001"); // Macbook Pro
 
 const RoomPage = () => {
   const [roomId, setRoomId] = useState("");
