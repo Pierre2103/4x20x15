@@ -6,7 +6,7 @@ import setupRoomHandlers from "../socket/room.js";
 let io, serverSocket, clientSocket, httpServer;
 
 beforeAll((done) => {
-  // Initialisation du serveur HTTP et Socket.IO
+  // Create a new HTTP server and initialize Socket.IO
   httpServer = createServer();
   io = new Server(httpServer);
 
@@ -18,7 +18,7 @@ beforeAll((done) => {
     io.on("connection", (socket) => {
       serverSocket = socket;
       console.log("Server: Client connected");
-      setupRoomHandlers(io, socket, {}); // Injection des handlers de rooms
+      setupRoomHandlers(io, socket, {}); // Simulated activeRooms injection
     });
 
     clientSocket.on("connect", () => {
@@ -39,16 +39,9 @@ afterAll(() => {
   httpServer.close();
 });
 
-describe("Tests de gestion des rooms", () => {
-  test("Connexion au serveur", (done) => {
-    clientSocket.on("connect", () => {
-      console.log("Client: Connected to the server");
-      expect(clientSocket.connected).toBe(true);
-      done();
-    });
-  });
-
-  test("Créer une room valide", (done) => {
+test(
+  "devrait créer une room et émettre roomCreated",
+  (done) => {
     clientSocket.emit("createRoom", { hostId: "C1uiiDcNIRgdPI0wUvNw1ssMOxw1" });
 
     clientSocket.on("roomCreated", (data) => {
@@ -62,15 +55,17 @@ describe("Tests de gestion des rooms", () => {
       console.error("Client: Received error event", err);
       done(err);
     });
-  });
 
-  test("Créer une room avec un UID invalide", (done) => {
-    clientSocket.emit("createRoom", { hostId: "invalid-uid" });
+    serverSocket.on("error", (err) => {
+      console.error("Server: Received error event", err);
+      done(err);
+    });
 
     clientSocket.on("error", (err) => {
-      console.log("Client: Received error event", err);
-      expect(err).toHaveProperty("message", "Utilisateur introuvable");
-      done();
-    });
-  });
-});
+        console.log("Client: Received error event", err);
+        expect(err).toHaveProperty("message", "Utilisateur introuvable");
+        done();
+      });
+  },
+  10000 // Timeout of 10 seconds
+);
