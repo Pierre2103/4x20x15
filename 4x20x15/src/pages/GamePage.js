@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 
-const socket = io("http://192.168.1.29:3001"); // PC de bureau
-// const socket = io("http://192.168.14.162:3001"); // Macbook Pro
+const socket = io(process.env.REACT_APP_SERVER_URL || "http://localhost:3001");
 
 const GamePage = () => {
   const { id } = useParams(); // Room ID
