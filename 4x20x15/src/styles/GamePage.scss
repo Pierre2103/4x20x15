@@ -1,0 +1,149 @@
+// importer les variables à partir de index.scss
+@import "./index.scss";
+
+// Styles spécifiques à la page Game
+.game-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  height: 100vh;
+  padding: 20px;
+  background-color: var(--background);
+
+  // Section des joueurs en haut
+  .game-players {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    background-color: var(--card);
+    padding: 10px;
+    border-radius: 8px;
+
+    .player-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      .player-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: var(--primary);
+      }
+
+      .player-name {
+        margin-top: 5px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--font);
+      }
+
+      .player-penalties {
+        margin-top: 2px;
+        font-size: 0.8rem;
+        color: var(--danger);
+      }
+    }
+  }
+
+  // Section centrale (pioche et cartes jouées)
+  .game-center {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    padding: 20px;
+
+    .deck {
+      text-align: center;
+
+      .deck-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: var(--font);
+      }
+
+      .deck-cards {
+        font-size: 3rem;
+        color: var(--primary);
+      }
+    }
+
+    .played-cards {
+      text-align: center;
+
+      .played-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: var(--font);
+      }
+
+      .played-cards-display {
+        display: flex;
+        gap: 10px;
+
+        .played-card {
+          background-color: var(--card);
+          border-radius: 8px;
+          padding: 10px;
+          font-size: 1.5rem;
+          text-align: center;
+        }
+      }
+    }
+  }
+
+  // Section basse (cartes et joueur)
+  .game-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+
+    .player-cards {
+      display: flex;
+      gap: 10px;
+
+      .card {
+        background-color: var(--primary);
+        color: var(--font);
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 1.5rem;
+        text-align: center;
+        cursor: pointer;
+
+        &:hover {
+          background-color: var(--hover);
+        }
+      }
+    }
+
+    .player-info-bottom {
+      text-align: center;
+
+      .player-avatar-bottom {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: var(--primary);
+      }
+
+      .player-name-bottom {
+        margin-top: 5px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--font);
+      }
+
+      .player-penalties-bottom {
+        margin-top: 2px;
+        font-size: 0.9rem;
+        color: var(--danger);
+      }
+    }
+  }
+}

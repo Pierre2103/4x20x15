@@ -1,4 +1,3 @@
-//? src/pages/RoomPage.js
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { auth } from "../firebaseConfig.js";
@@ -7,8 +6,7 @@ import "../styles/RoomPage.scss";
 import arrow_back from "../img/icons/arrow-back.svg";
 import cancel from "../img/icons/cancel.svg";
 
-// const socket = io("http://192.168.1.29:3001"); // Remplacez par votre backend
-const socket = io("http://192.168.14.162:3001"); // Remplacez par votre backend
+const socket = io(process.env.REACT_APP_SERVER_URL || "http://localhost:3001");
 
 const RoomPage = () => {
   const [roomId, setRoomId] = useState("");
@@ -63,11 +61,7 @@ const RoomPage = () => {
     socket.emit("startGame", { roomId: currentRoom.id });
   };
 
-  // Écoute les événements, pour:
-  // - Créer une room
-  // - Mettre à jour une room
-  // - Démarrer une partie
-  // - Supprimer un joueur de la room
+  // Gestion des événements socket
   useEffect(() => {
     socket.on("roomCreated", (data) => {
       setRoomId(data.roomId);
@@ -93,14 +87,29 @@ const RoomPage = () => {
       }
     });
 
-    socket.on("removedFromRoom", () => {
-      // setCurrentRoom(null);
-    console.log("removedFromRoom");
-      window.location.href = "/room"; // Redirige vers la page d'accueil ou une autre page
+    socket.on("removedFromRoom", (data) => {
+      if (!data || !data.playerId) {
+        console.error("Erreur : Données manquantes dans l'événement removedFromRoom", data);
+        return;
+      }
+    
+      const { playerId } = data;
+      const user = auth.currentUser;
+    
+      console.log(`Joueur supprimé : ${playerId}`);
+      console.log(`Utilisateur actuel : ${user.uid}`);
+    
+      if (user && user.uid === playerId) {
+        console.log(`Utilisateur actuel supprimé : ${user.uid}`);
+        setCurrentRoom(null);
+        window.location.href = "/room";
+      }
     });
+    
+    
 
     return () => socket.off(); // Nettoyer les listeners pour éviter les fuites
-  }, []);
+  }, [currentRoom]);
 
   // Enregistre l'utilisateur connecté
   useEffect(() => {
@@ -131,88 +140,87 @@ const RoomPage = () => {
     };
   }, [currentRoom]);
 
-  return (
-    <div className="room-page">
-      {!currentRoom && (
-        <div>
-          <button
-            className="back-button"
-            onClick={() => {
-              if (currentRoom && auth.currentUser) {
-                socket.emit("removePlayer", {
-                  roomId: currentRoom.id,
-                  playerId: auth.currentUser.uid,
-                });
-              }
-              window.location.href = "/home";
-            }}
-          >
-            <img src={arrow_back} alt="Retour" />
-          </button>
-          <h1>Gestion des Rooms</h1>
-          <div className="room-input">
-            <input
-              type="text"
-              placeholder="Room ID"
-              value={roomId}
-              onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-            />
-            <button onClick={joinRoom}>OK</button>
-          </div>
-          <div className="button-group">
-            <button onClick={createRoom}>Créer une Room</button>
-          </div>
-        </div>
-      )}
-      {currentRoom && (
-        <div className="room-details">
-          <button
-            className="back-button"
-            onClick={() => window.location.reload()}
-          >
-            <img src={arrow_back} alt="Retour" />
-          </button>
-          <div className="room-title">
-            <h3>Room ID :</h3>
-            <h1>{currentRoom.id || "En attente de création..."}</h1>
-          </div>
-          <div className="room-players">
-            <h2>Joueurs :</h2>
-            <ul>
-              {currentRoom.players?.map((player) => (
-                <li key={player.id} className="player-item">
-                  <svg
-                    className="avatar"
-                    data-jdenticon-value={player.avatar || "default"}
-                    width="50"
-                    height="50"
-                  ></svg>
-                  <span>
-                    {player.username}{" "}
-                    {player.id === currentRoom.hostId ? "(Host)" : ""}
-                  </span>
-                  {auth.currentUser?.uid === currentRoom.hostId &&
-                    player.id !== currentRoom.hostId && (
-                      <button
-                        className="remove-button"
-                        onClick={() => removePlayer(player.id)}
-                      >
-                        <img src={cancel} alt="Supprimer" />
-                      </button>
-                    )}
-                </li>
-              ))}
-            </ul>
-          </div>
-          {auth.currentUser?.uid === currentRoom.hostId && (
-            <button className="start-button" onClick={startGame}>
-              Commencer le jeu
-            </button>
-          )}
-        </div>
+  const renderRoomInput = () => (
+    <div>
+      <button
+        className="back-button"
+        onClick={() => {
+          if (currentRoom && auth.currentUser) {
+            socket.emit("removePlayer", {
+              roomId: currentRoom.id,
+              playerId: auth.currentUser.uid,
+            });
+          }
+          window.location.href = "/home";
+        }}
+      >
+        <img src={arrow_back} alt="Retour" />
+      </button>
+      <h1>Gestion des Rooms</h1>
+      <div className="room-input">
+        <input
+          type="text"
+          placeholder="Room ID"
+          value={roomId}
+          onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+        />
+        <button onClick={joinRoom}>OK</button>
+      </div>
+      <div className="button-group">
+        <button onClick={createRoom}>Créer une Room</button>
+      </div>
+    </div>
+  );
+
+  const renderRoomDetails = () => (
+    <div className="room-details">
+      <button
+        className="back-button"
+        onClick={() => window.location.reload()}
+      >
+        <img src={arrow_back} alt="Retour" />
+      </button>
+      <div className="room-title">
+        <h3>Room ID :</h3>
+        <h1>{currentRoom.id || "En attente de création..."}</h1>
+      </div>
+      <div className="room-players">
+        <h2>Joueurs :</h2>
+        <ul>
+          {currentRoom.players?.map((player) => (
+            <li key={player.id} className="player-item">
+              <svg
+                className="avatar"
+                data-jdenticon-value={player.avatar || "default"}
+                width="50"
+                height="50"
+              ></svg>
+              <span>
+                {player.username}{" "}
+                {player.id === currentRoom.hostId ? "(Host)" : ""}
+              </span>
+              {auth.currentUser?.uid === currentRoom.hostId &&
+                player.id !== currentRoom.hostId && (
+                  <button
+                    className="remove-button"
+                    onClick={() => removePlayer(player.id)}
+                  >
+                    <img src={cancel} alt="Supprimer" />
+                  </button>
+                )}
+            </li>
+          ))}
+        </ul>
+      </div>
+      {auth.currentUser?.uid === currentRoom.hostId && (
+        <button className="start-button" onClick={startGame}>
+          Commencer le jeu
+        </button>
       )}
     </div>
   );
+
+  return <div className="room-page">{currentRoom ? renderRoomDetails() : renderRoomInput()}</div>;
 };
 
 export default RoomPage;

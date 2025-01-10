@@ -235,80 +235,130 @@ io.on("connection", (socket) => {
   socket.on("removePlayer", async ({ roomId, playerId }) => {
     try {
       const room = activeRooms[roomId];
-
-      // Si la room n'est pas en mémoire, retourner une erreur
+  
       if (!room) {
         socket.emit("error", { message: "Room introuvable" });
         return;
       }
-
-      // Empêche la suppression si la partie est déjà en cours
+  
       if (room.status === "playing") {
-        console.log(
-          `Tentative de suppression refusée : Room ${roomId} en cours de jeu`
-        );
+        console.log(`Tentative de suppression refusée : Room ${roomId} en cours de jeu`);
         return;
       }
-
-      // Supprime le joueur de la liste
+  
+      // Supprimer le joueur de la room
       room.players = room.players.filter((player) => player.id !== playerId);
-
-      // Envoie un socket removedFromRoom pour rediriger le joueur vers la page d'accueil
-      socket.emit("removedFromRoom");
-
-      // Met à jour Firestore
+  
+      // Mettre à jour Firestore
       const roomDoc = doc(db, "rooms", roomId);
       await updateDoc(roomDoc, { players: room.players });
-
-      // Notifie tous les joueurs de la mise à jour
+  
+      // Notifier uniquement le joueur supprimé
+      const targetSocket = Array.from(io.sockets.sockets.values()).find((s) => s.userId === playerId);
+      if (targetSocket) {
+        targetSocket.emit("removedFromRoom", { playerId });
+        console.log(`Émission de removedFromRoom pour le joueur supprimé : ${playerId}`);
+      } else {
+        console.warn(`Socket introuvable pour le joueur : ${playerId}`);
+      }
+  
+      // Notifier tous les autres joueurs de la room
       io.to(roomId).emit("roomUpdated", room);
-
+  
       console.log(`Utilisateur ${playerId} supprimé de la room ${roomId}`);
     } catch (error) {
       console.error("Erreur lors de la suppression du joueur :", error.message);
-      socket.emit("error", {
-        message: "Erreur lors de la suppression du joueur",
-      });
+      socket.emit("error", { message: "Erreur lors de la suppression du joueur" });
     }
   });
+  
+  
+  socket.on("joinGame", async ({ roomId }) => {
+    const gameRef = doc(db, "games", roomId);
+    const gameSnapshot = await getDoc(gameRef);
+  
+    if (!gameSnapshot.exists()) {
+      socket.emit("error", { message: "Partie introuvable" });
+      return;
+    }
+  
+    const game = gameSnapshot.data();
+    socket.join(roomId);
+    socket.emit("gameStarted", { ...game, playerCards: drawCards(game.deck, 3) });
+  });
+  
+  const drawCards = (deck, count) => deck.splice(0, count);
+  
+  
 
 
-  //? DÉMARRER UNE PARTIE
+  //? Commencer une partie
   socket.on("startGame", async ({ roomId }) => {
-    try {
-      const room = activeRooms[roomId];
-
-      if (!room) {
-        socket.emit("error", { message: "Room introuvable" });
-        return;
-      }
-
-      // Vérifie que seul l'hôte peut démarrer la partie
-      if (room.hostId !== socket.userId) {
-        socket.emit("error", {
-          message: "Seul l'hôte peut démarrer la partie.",
-        });
-        return;
-      }
-
-      // Met à jour le statut de la room en mémoire
-      room.status = "playing";
-
-      // Met à jour uniquement le statut dans Firestore
-      const roomDoc = doc(db, "rooms", roomId);
-      await updateDoc(roomDoc, { status: "playing" });
-
-      // Notifie tous les joueurs que la partie commence
-      io.to(roomId).emit("gameStarted", { roomId });
-
-      console.log(`Partie démarrée pour la room : ${roomId}`);
-    } catch (error) {
-      console.error("Erreur lors du démarrage de la partie :", error.message);
-      socket.emit("error", {
-        message: "Erreur lors du démarrage de la partie",
-      });
+    const room = activeRooms[roomId];
+    if (!room) {
+      socket.emit("error", { message: "Room introuvable" });
+      return;
     }
+
+    // Créer une nouvelle partie avec un deck mélangé
+    const deck = shuffleDeck(generateDeck());
+    const game = {
+      roomId,
+      deck,
+      playedCards: [],
+      currentPlayerIndex: 0,
+      penalties: {},
+    };
+
+    await setDoc(doc(collection(db, "games"), roomId), game);
+    io.to(roomId).emit("gameStarted", { roomId });
   });
+
+  //? Jouer une carte
+  socket.on("playCard", async ({ roomId, userId, card, guess }) => {
+    const gameRef = doc(db, "games", roomId);
+    const gameSnapshot = await getDoc(gameRef);
+    if (!gameSnapshot.exists()) {
+      socket.emit("error", { message: "Partie introuvable" });
+      return;
+    }
+
+    const game = gameSnapshot.data();
+    const player = activeRooms[roomId]?.players.find((p) => p.id === userId);
+    if (!player) {
+      socket.emit("error", { message: "Joueur non trouvé" });
+      return;
+    }
+
+    const actualTotal = calculateTotal(game.playedCards, card);
+    if (guess !== actualTotal) {
+      game.penalties[userId] = (game.penalties[userId] || 0) + 1;
+      socket.emit("penalty", { message: "Mauvaise réponse !", penalties: game.penalties[userId] });
+    } else {
+      game.playedCards.push(card);
+      game.deck = game.deck.filter((c) => c !== card);
+      game.currentPlayerIndex = (game.currentPlayerIndex + 1) % activeRooms[roomId].players.length;
+    }
+
+    await updateDoc(gameRef, game);
+    io.to(roomId).emit("gameUpdated", game);
+  });
+
+  const generateDeck = () => {
+    const suits = ["♠", "♥", "♦", "♣"];
+    const values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+    return suits.flatMap((suit) => values.map((value) => ({ suit, value })));
+  };
+
+  const shuffleDeck = (deck) => deck.sort(() => Math.random() - 0.5);
+
+  const calculateTotal = (playedCards, card) => {
+    const total = playedCards.reduce((sum, c) => sum + parseInt(c.value || 10), 0);
+    return total + parseInt(card.value || 10);
+  };
+
+
+
 });
 
 // Lancement du serveur
