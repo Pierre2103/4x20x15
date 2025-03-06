@@ -5,7 +5,7 @@ import { auth } from "../firebaseConfig.js";
 import "../styles/GamePage.scss";
 
 // Socket global
-const socket = io(process.env.REACT_APP_SERVER_URL || "http://localhost:3001");
+const socket = io(process.env.REACT_APP_SERVER_URL || "https://4x20x15-production.up.railway.app/");
 
 const GamePage = () => {
   const { id: roomId } = useParams();

@@ -7,7 +7,7 @@ import "../styles/RoomPage.scss";
 import arrow_back from "../img/icons/arrow-back.svg";
 import cancel from "../img/icons/cancel.svg";
 
-const socket = io(process.env.REACT_APP_SERVER_URL || "http://localhost:3001");
+const socket = io(process.env.REACT_APP_SERVER_URL || "https://4x20x15-production.up.railway.app/");
 
 const RoomPage = () => {
   const [roomId, setRoomId] = useState("");
