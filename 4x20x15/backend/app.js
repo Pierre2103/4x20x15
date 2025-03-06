@@ -273,25 +273,6 @@ io.on("connection", (socket) => {
   });
   
   
-  socket.on("joinGame", async ({ roomId }) => {
-    const gameRef = doc(db, "games", roomId);
-    const gameSnapshot = await getDoc(gameRef);
-  
-    if (!gameSnapshot.exists()) {
-      socket.emit("error", { message: "Partie introuvable" });
-      return;
-    }
-  
-    const game = gameSnapshot.data();
-    socket.join(roomId);
-    socket.emit("gameStarted", { ...game, playerCards: drawCards(game.deck, 3) });
-  });
-  
-  const drawCards = (deck, count) => deck.splice(0, count);
-  
-  
-
-
   //? Commencer une partie
   socket.on("startGame", async ({ roomId }) => {
     const room = activeRooms[roomId];
@@ -300,48 +281,91 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Créer une nouvelle partie avec un deck mélangé
+    // Check if there are enough players to start the game
+    if (room.players.length < 2) {
+      socket.emit("error", { message: "Pas assez de joueurs pour commencer la partie." });
+      return;
+    }
+
+    // Créer un nouveau deck mélangé
     const deck = shuffleDeck(generateDeck());
+
+    // Distribuer les cartes aux joueurs
+    const playerCards = {};
+    const playersInfo = {};
+    room.players.forEach(player => {
+      playerCards[player.id] = drawCards(deck, 3); // Give each player 3 cards
+      playersInfo[player.id] = {
+        username: player.username,
+        avatar: player.avatar,
+        penalties: 10
+        // isCurrentPlayer: false,
+        // cards: drawCards(deck, 3)
+      };
+    });
+
+
+    // Placer une carte sur la table (deplacer la première carte du deck dans les playedCards)
+    const firstCard = deck.shift();
+    const playedCards = [firstCard];
+
+    // Initialiser l'index du joueur actuel (le premier joueur de la room)
+    const currentPlayerId = room.players[0].id;
+
+
     const game = {
       roomId,
       deck,
-      playedCards: [],
-      currentPlayerIndex: 0,
-      penalties: {},
+      playedCards: playedCards,
+      currentPlayerId: currentPlayerId,
+      playerCards: playerCards,
+      players: playersInfo
     };
 
     await setDoc(doc(collection(db, "games"), roomId), game);
-    io.to(roomId).emit("gameStarted", { roomId });
+    io.to(roomId).emit("gameStarted", game); // Emit the whole game object
+
+    // Optionally, emit playerCards individually to each player
+    room.players.forEach(player => {
+      socket.to(player.id).emit("playerCards", playerCards[player.id]);
+    });
+
   });
 
-  //? Jouer une carte
-  socket.on("playCard", async ({ roomId, userId, card, guess }) => {
+
+
+
+  //? REJOINDRE UNE PARTIE
+  socket.on("joinGame", async ({ roomId, userId }) => {
     const gameRef = doc(db, "games", roomId);
     const gameSnapshot = await getDoc(gameRef);
+
     if (!gameSnapshot.exists()) {
       socket.emit("error", { message: "Partie introuvable" });
       return;
     }
 
     const game = gameSnapshot.data();
-    const player = activeRooms[roomId]?.players.find((p) => p.id === userId);
-    if (!player) {
-      socket.emit("error", { message: "Joueur non trouvé" });
-      return;
-    }
+    socket.join(roomId);
 
-    const actualTotal = calculateTotal(game.playedCards, card);
-    if (guess !== actualTotal) {
-      game.penalties[userId] = (game.penalties[userId] || 0) + 1;
-      socket.emit("penalty", { message: "Mauvaise réponse !", penalties: game.penalties[userId] });
-    } else {
-      game.playedCards.push(card);
-      game.deck = game.deck.filter((c) => c !== card);
-      game.currentPlayerIndex = (game.currentPlayerIndex + 1) % activeRooms[roomId].players.length;
-    }
+    // Send the complete game state to the joining player
+    socket.emit("gameStarted", game);
 
-    await updateDoc(gameRef, game);
-    io.to(roomId).emit("gameUpdated", game);
+    // Optionally, send playerCards individually to the joining player
+    socket.emit("playerCards", game.playerCards[userId]);
+  });
+
+
+  const drawCards = (deck, count) => {
+    const cards = deck.splice(0, count);
+    return cards;
+  };
+
+
+
+  //? Jouer une carte
+  socket.on("playCard", async ({ roomId, userId, card }) => {
+    // ECRIRE LE CODE ICI POUR JOUER UNE CARTE
   });
 
   const generateDeck = () => {

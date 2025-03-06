@@ -34,7 +34,7 @@ body {
   font-family: "Outfit", sans-serif;
   background-color: var(--background);
   color: var(--font);
-  height: 80vh;
+  height: 100vh;
   overflow: hidden;
   display: flex;
   justify-content: center;
@@ -68,6 +68,18 @@ body {
   from {
     opacity: 0;
     transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// slideUp: Apparition en glissement vers le haut
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
