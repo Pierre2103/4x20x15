@@ -3,7 +3,7 @@
 // importer les variables à partir de index.scss
 @import "./index.scss";
 
-// * {border: 1px solid red;} //! Pour voir les éléments DEBUG 
+// * {border: 1px solid red;} //! Pour voir les éléments DEBUG
 
 // Styles spécifiques à la page Game
 .game-page {
@@ -11,9 +11,10 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  height: 100%;
+  height: 85%;
+  transform: translateY(-5%);
   width: 100%;
-  
+
   padding: 20px;
   background-color: var(--background);
 
@@ -23,6 +24,8 @@
     justify-content: space-around;
     width: 100%;
     animation: slideDown 1.5s;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
 
     .player-info {
       display: flex;
@@ -34,8 +37,13 @@
       padding: 10px;
       border-radius: 8px;
 
+      &.itsTurn {
+        background-color: var(--primary);
+        color: #fff;
+      }
+
       .player-avatar {
-        display: none;    //! Cacher l'avatar (temporaire)
+        display: none; //! Cacher l'avatar (temporaire)
         width: 50px;
         height: 50px;
         border-radius: 50%;
@@ -60,14 +68,13 @@
   .game-center {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     align-items: center;
     width: 100%;
-    height: 450px;
-    padding: 20px;
 
     .deck {
-      text-align: center;
+      width: 100%;
+      margin-top: -50px;
+      animation: slideRight 1.5s;
 
       .deck-title {
         font-size: 1.2rem;
@@ -77,6 +84,7 @@
       }
 
       .deck-count {
+        margin-top: 15px;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -97,8 +105,13 @@
     }
 
     .played-cards {
-      text-align: center;
-
+      width: 100%;
+      // height: 250px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 15px;
+      animation: slideLeft 1.5s;
 
       .played-title {
         font-size: 1.2rem;
@@ -107,77 +120,18 @@
         color: var(--font);
       }
 
-      .played-cards {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        align-items: center;
-
-        .played-card {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          flex-direction: column;
-          background-color: #f0f0f0;
-          border-radius: 8px;
-          height: 150px;
-          width: 90px;
-
-          .card-value {
-            font-size: 3.5rem;
-            font-weight: 600;
-            height: 40%;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-          }
-          
-          .card-suit {
-            font-size: 2.5rem;
-            font-weight: 600;
-            height: 40%;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-          }
-
-          &.black {
-            color: black;
-          }
-
-          &.red {
-            color: red;
-          }
-        }
-      }
-    }
-  }
-
-  // Section basse (cartes et joueur)
-  .game-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-
-    .player-cards {
-      display: flex;
-      gap: 10px;
-
-      .player-card {
+      .played-card {
         display: flex;
         justify-content: center;
         align-items: center;
         flex-direction: column;
         background-color: #f0f0f0;
         border-radius: 8px;
-        height: 100px;
-        width: 60px;
+        height: 150px;
+        width: 90px;
 
         .card-value {
-          font-size: 1.8rem;
+          font-size: 3.5rem;
           font-weight: 600;
           height: 40%;
           width: 100%;
@@ -185,9 +139,9 @@
           justify-content: center;
           align-items: center;
         }
-        
+
         .card-suit {
-          font-size: 1.5rem;
+          font-size: 2.5rem;
           font-weight: 600;
           height: 40%;
           width: 100%;
@@ -204,7 +158,63 @@
           color: red;
         }
       }
+    }
+  }
 
+  // Section basse (cartes et joueur)
+  .game-bottom {
+    padding-top: 15px;
+    border-top: 2px solid #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    animation: slideUp 1.5s;
+
+      .cards-list {
+        padding: 10px;
+      display: flex;
+      gap: 10px;
+        
+        .player-card {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-direction: column;
+          background-color: #f0f0f0;
+          border-radius: 8px;
+          height: 100px;
+          width: 60px;
+
+          .card-value {
+            font-size: 1.8rem;
+            font-weight: 600;
+            height: 40%;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+
+          .card-suit {
+            font-size: 1.5rem;
+            font-weight: 600;
+            height: 40%;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+
+          &.black {
+            color: black;
+          }
+
+          &.red {
+            color: red;
+          }
+      }
     }
 
     .player-info-bottom {

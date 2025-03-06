@@ -1,22 +1,18 @@
-// src/pages/GamePage.js
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
-import { auth } from "../firebaseConfig.js"; // Import auth
+import { auth } from "../firebaseConfig.js";
 import "../styles/GamePage.scss";
 
-// Initialise le socket une seule fois, en dehors du composant
+// Socket global
 const socket = io(process.env.REACT_APP_SERVER_URL || "http://localhost:3001");
 
 const GamePage = () => {
   const { id: roomId } = useParams();
   const [currentUser, setCurrentUser] = useState(null);
   const [game, setGame] = useState(null);
-  const [playerCards, setPlayerCards] = useState([]);
-  const [currentPlayer, setCurrentPlayer] = useState(false);
-  const [playersInfo, setPlayersInfo] = useState({});
 
-  // 1) Écouter l’authentification Firebase
+  // Écoute l'état de connexion Firebase
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setCurrentUser(user);
@@ -24,42 +20,36 @@ const GamePage = () => {
     return () => unsubscribe();
   }, []);
 
-  // 2) Quand on a l’utilisateur, on rejoint la partie + écoute les événements socket
+  // Rejoindre la partie
   useEffect(() => {
-    if (!currentUser) return; // on attend le user
+    if (!currentUser) return;
 
     socket.emit("joinGame", { roomId, userId: currentUser.uid });
 
     socket.on("gameStarted", (data) => {
-      console.log("Partie commencée :", data);
+      console.log("Game démarrée ou chargée:", data);
       setGame(data);
-      setPlayerCards(data.playerCards?.[currentUser.uid] || []);
-      setPlayersInfo(data.players || {});
-      setCurrentPlayer(data.currentPlayerId === currentUser.uid);
     });
 
     socket.on("gameUpdated", (data) => {
-      console.log("Mise à jour du jeu :", data);
+      console.log("Game mise à jour:", data);
       setGame(data);
-      setPlayerCards(data.playerCards?.[currentUser.uid] || []);
-      setCurrentPlayer(data.currentPlayerId === currentUser.uid);
     });
 
-    socket.on("penalty", (data) => {
+    socket.on("alertMessage", (data) => {
       alert(data.message);
     });
 
-    // Nettoyage quand le composant se démonte
     return () => {
       socket.off("gameStarted");
       socket.off("gameUpdated");
-      socket.off("penalty");
+      socket.off("alertMessage");
     };
   }, [currentUser, roomId]);
 
-  // Jouer une carte
+  // Fonction pour jouer une carte
   const playCard = (card) => {
-    // On émet simplement la carte jouée (sans estimation)
+    if (!currentUser) return;
     socket.emit("playCard", {
       roomId,
       userId: currentUser.uid,
@@ -67,92 +57,102 @@ const GamePage = () => {
     });
   };
 
-  // Récupération d'info sur un joueur donné (pour l'affichage avatar/username)
-  const getPlayerInfo = (playerId) => {
-    return playersInfo[playerId] || { username: "Inconnu", avatar: "default" };
-  };
+  if (!game) {
+    return <div>Chargement de la partie...</div>;
+  }
+
+  // Récupérer mes infos dans game.players
+  const myPlayer = game.players[currentUser.uid] || {};
+
+  // Dernière carte jouée (si existe)
+  const lastCard = game.playedCards?.[game.playedCards.length - 1];
+
+  // Savoir si la partie est finie
+  const isGameOver = !!game.gameOver;
 
   return (
     <div className="game-page">
-      {/* Section des joueurs */}
+      <h1>Partie: {roomId}</h1>
+      {isGameOver && (
+        <div className="game-over-message">
+          <h2>La partie est terminée !</h2>
+          {myPlayer.hasLost && <p>Vous avez perdu !</p>}
+          {myPlayer.hasWon && <p>Vous avez gagné !</p>}
+        </div>
+      )}
+
+      {/* Liste des joueurs */}
       <div className="game-players">
-        {game &&
-          Object.keys(game.players).map((playerId) => {
-            const player = game.players[playerId];
-            return (
-              <div key={playerId} className="player-info">
-                {/* <div className="player-avatar">{player.avatar}</div> */}
-                <div className="player-name">[{player.penalties}] {player.username}</div>
-                {/* <div className="player-penalties">
-                  Pénalités : {game.penalties?.[playerId] || 0}
-                </div> */}
-              </div>
-            );
-          })}
+        {Object.keys(game.players).map((pid) => {
+          const player = game.players[pid];
+          return (
+            <div
+              key={pid}
+              className={`player-info 
+                ${player.isPlaying ? "itsTurn" : ""}
+                ${player.hasLost ? "lost" : ""}
+                ${player.hasWon ? "won" : ""}
+              `}
+            >
+              <div className="player-name">{player.username}</div>
+              {player.hasLost && <div className="lost-message">Perdu</div>}
+              {player.hasWon && <div className="won-message">Gagné</div>}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Section centrale : pioche et cartes jouées */}
+      {/* Zone de jeu */}
       <div className="game-center">
         <div className="played-cards">
-          <div className="played-title">Last Card</div>
-          <div className="played-cards">
-            {game?.playedCards?.length > 0 && (
-              <div
-                className={`played-card ${
-                  game.playedCards[game.playedCards.length - 1].suit === "♠" ||
-                  game.playedCards[game.playedCards.length - 1].suit === "♣"
-                    ? "black"
-                    : "red"
-                }`}
-              >
-                <div className="card-value">
-                  {game.playedCards[game.playedCards.length - 1].value}
-                </div>
-                <div className="card-suit">
-                  {game.playedCards[game.playedCards.length - 1].suit}
-                </div>
-              </div>
-            )}
-          </div>
+          <h3>Dernière carte jouée</h3>
+          {lastCard ? (
+            <div
+              className={`played-card ${
+                lastCard.suit === "♠" || lastCard.suit === "♣" ? "black" : "red"
+              }`}
+            >
+              <div className="card-value">{lastCard.value}</div>
+              <div className="card-suit">{lastCard.suit}</div>
+
+            </div>
+          ) : (
+            <div>Aucune carte encore jouée</div>
+          )}
+          <div className="total">Total: {game.total}</div>
         </div>
         <div className="deck">
-          <div className="deck-title">Deck</div>
-          <div className="deck-count"><p>{game?.deck?.length}</p></div>
+          <h3>Pioche</h3>
+          <div className="deck-count">
+            <p>{game.deck.length}</p>
+          </div>
         </div>
       </div>
 
-      {/* Section basse : cartes du joueur et informations */}
-      <div className="game-bottom">
-        <div className="player-cards">
-          {playerCards.map((card, index) => (
-            <div
-              key={index}
-              className={`player-card ${
-                card.suit === "♠" || card.suit === "♣" ? "black" : "red"
-              }`}
-              onClick={() => currentPlayer && playCard(card)}
-            >
-              <div className="card-value">{card.value}</div>
-              <div className="card-suit">{card.suit}</div>
-            </div>
-          ))}
+      {/* Mes cartes (si je n'ai pas perdu/gagné) */}
+      {!myPlayer.hasLost && !myPlayer.hasWon && (
+        <div className="game-bottom">
+          <h3>Vos cartes</h3>
+          <div className="cards-list">
+            {myPlayer.cards?.map((card, idx) => (
+              <div
+                key={idx}
+                className={`player-card ${
+                  card.suit === "♠" || card.suit === "♣" ? "black" : "red"
+                }`}
+                onClick={() => {
+                  if (myPlayer.isPlaying && !isGameOver) {
+                    playCard(card);
+                  }
+                }}
+              >
+                <div className="card-value">{card.value}</div>
+                <div className="card-suit">{card.suit}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="player-info-bottom">
-          {game && (
-            <>
-              <div className="player-name-bottom">
-                {getPlayerInfo(game.currentPlayerId).username}
-              </div>
-              <div className="player-avatar-bottom">
-                {getPlayerInfo(game.currentPlayerId).avatar}
-              </div>
-              <div className="player-penalties-bottom">
-                Pénalités : {game?.penalties?.[currentUser?.uid] || 0}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 };

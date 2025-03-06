@@ -23,6 +23,11 @@ const io = new Server(server, {
 const PORT = 3001;
 const ROOM_LIFETIME = 1000 * 60 * 90; // Durée de vie d'une room en millisecondes (1h30)
 
+const ALERT_THRESHOLDS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+const LOOSE_THRESHOLD = 95;              // À 95 ou plus, le joueur a perdu
+
+
+
 // Middleware pour parser le JSON
 app.use(express.json());
 
@@ -273,70 +278,91 @@ io.on("connection", (socket) => {
   });
   
   
-  //? Commencer une partie
-  socket.on("startGame", async ({ roomId }) => {
-    const room = activeRooms[roomId];
-    if (!room) {
-      socket.emit("error", { message: "Room introuvable" });
-      return;
-    }
+//? CREER UNE PARTIE
+socket.on("startGame", async ({ roomId }) => {
+  const room = activeRooms[roomId];
+  if (!room) {
+    socket.emit("error", { message: "Room introuvable" });
+    return;
+  }
 
-    // Check if there are enough players to start the game
-    if (room.players.length < 2) {
-      socket.emit("error", { message: "Pas assez de joueurs pour commencer la partie." });
-      return;
-    }
-
-    // Créer un nouveau deck mélangé
-    const deck = shuffleDeck(generateDeck());
-
-    // Distribuer les cartes aux joueurs
-    const playerCards = {};
-    const playersInfo = {};
-    room.players.forEach(player => {
-      playerCards[player.id] = drawCards(deck, 3); // Give each player 3 cards
-      playersInfo[player.id] = {
-        username: player.username,
-        avatar: player.avatar,
-        penalties: 10
-        // isCurrentPlayer: false,
-        // cards: drawCards(deck, 3)
-      };
+  if (room.players.length < 2) {
+    socket.emit("error", {
+      message: "Pas assez de joueurs pour commencer la partie.",
     });
+    return;
+  }
 
+  const deck = shuffleDeck(generateDeck());
 
-    // Placer une carte sur la table (deplacer la première carte du deck dans les playedCards)
-    const firstCard = deck.shift();
-    const playedCards = [firstCard];
-
-    // Initialiser l'index du joueur actuel (le premier joueur de la room)
-    const currentPlayerId = room.players[0].id;
-
-
-    const game = {
-      roomId,
-      deck,
-      playedCards: playedCards,
-      currentPlayerId: currentPlayerId,
-      playerCards: playerCards,
-      players: playersInfo
+  const players = {};
+  room.players.forEach((player, idx) => {
+    players[player.id] = {
+      username: player.username,
+      avatar: player.avatar,
+      penalties: 0,
+      isPlaying: idx === 0, // Le premier de la liste commence
+      hasLost: false,       // Personne n'a encore perdu
+      cards: drawCards(deck, 3),
     };
-
-    await setDoc(doc(collection(db, "games"), roomId), game);
-    io.to(roomId).emit("gameStarted", game); // Emit the whole game object
-
-    // Optionally, emit playerCards individually to each player
-    room.players.forEach(player => {
-      socket.to(player.id).emit("playerCards", playerCards[player.id]);
-    });
-
   });
+
+  // Première carte
+  const firstCard = deck.shift();
+  const playedCards = [firstCard];
+  const initialTotal = baseCardValue(firstCard);
+
+  const game = {
+    roomId,
+    deck,
+    playedCards,
+    total: initialTotal,
+    direction: 1,  // sens normal
+    players,
+  };
+
+  await setDoc(doc(collection(db, "games"), roomId), game);
+  io.to(roomId).emit("gameStarted", game);
+
+  console.log(`Game started pour room ${roomId}`);
+});
+
+
+
 
 
 
 
   //? REJOINDRE UNE PARTIE
   socket.on("joinGame", async ({ roomId, userId }) => {
+    const gameRef = doc(db, "games", roomId);
+    const gameSnapshot = await getDoc(gameRef);
+  
+    if (!gameSnapshot.exists()) {
+      socket.emit("error", { message: "Partie introuvable" });
+      return;
+    }
+  
+    const game = gameSnapshot.data();
+    socket.join(roomId);
+  
+    // S’il manque direction, on le met à 1 (si la partie a pas encore commencé)
+    if (typeof game.direction !== "number") {
+      game.direction = 1;
+      await setDoc(gameRef, game);
+    }
+  
+    socket.emit("gameStarted", game);
+  });
+  
+  
+
+
+
+  //? Jouer une carte
+// La fonction socket.on("playCard", ...) réécrite :
+socket.on("playCard", async ({ roomId, userId, card }) => {
+  try {
     const gameRef = doc(db, "games", roomId);
     const gameSnapshot = await getDoc(gameRef);
 
@@ -346,27 +372,203 @@ io.on("connection", (socket) => {
     }
 
     const game = gameSnapshot.data();
-    socket.join(roomId);
 
-    // Send the complete game state to the joining player
-    socket.emit("gameStarted", game);
+    // Vérifie que le joueur est bien dans la partie
+    if (!game.players[userId]) {
+      socket.emit("error", { message: "Vous n'êtes pas dans cette partie." });
+      return;
+    }
 
-    // Optionally, send playerCards individually to the joining player
-    socket.emit("playerCards", game.playerCards[userId]);
-  });
+    // Vérifie que c'est bien son tour
+    if (!game.players[userId].isPlaying) {
+      socket.emit("error", { message: "Ce n'est pas votre tour !" });
+      return;
+    }
 
+    // Retrouver la carte dans la main du joueur
+    const playerCards = game.players[userId].cards;
+    const cardIndex = playerCards.findIndex(
+      (c) => c.suit === card.suit && c.value === card.value
+    );
+    if (cardIndex === -1) {
+      socket.emit("error", { message: "Carte introuvable dans votre main." });
+      return;
+    }
 
-  const drawCards = (deck, count) => {
-    const cards = deck.splice(0, count);
-    return cards;
-  };
+    // Retirer la carte de la main et l'ajouter à playedCards
+    const [played] = playerCards.splice(cardIndex, 1);
+    game.playedCards.push(played);
 
+    // Appliquer l'effet spécial
+    const effect = parseCardValue(played);
+    switch (effect.type) {
+      case "ADD":
+        game.total += effect.amount;
+        break;
+      case "MINUS":
+        game.total -= effect.amount;
+        break;
+      case "SET":
+        game.total = effect.amount;
+        break;
+      case "REVERSE":
+        game.direction *= -1;
+        break;
+      default:
+        // rien
+        break;
+    }
 
+    // Piocher une carte si le deck n'est pas vide
+    if (game.deck.length > 0) {
+      const newCard = game.deck.shift();
+      game.players[userId].cards.push(newCard);
+    }
 
-  //? Jouer une carte
-  socket.on("playCard", async ({ roomId, userId, card }) => {
-    // ECRIRE LE CODE ICI POUR JOUER UNE CARTE
-  });
+    // Vérifier l’alerte
+    const alertMsg = checkAlert(game.total, ALERT_THRESHOLDS);
+    if (alertMsg) {
+      io.to(roomId).emit("alertMessage", { message: alertMsg });
+    }
+
+    // Vérifier la lose condition (≥ 95)
+    if (game.total >= LOOSE_THRESHOLD) {
+      // => Ce joueur perd, tous les autres gagnent, la partie s'arrête
+
+      // Marquer ce joueur comme perdant
+      game.players[userId].hasLost = true;
+      game.players[userId].isPlaying = false;
+
+      // Tous les autres joueurs "gagnent"
+      Object.keys(game.players).forEach((pid) => {
+        if (pid !== userId) {
+          game.players[pid].hasWon = true;
+          game.players[pid].isPlaying = false; 
+        }
+      });
+
+      // Optionnel : on peut marquer le jeu comme terminé
+      game.gameOver = true;
+
+      // Émettre un message global
+      io.to(roomId).emit("alertMessage", {
+        message: `Le total est ${game.total} ! ${game.players[userId].username} a perdu, les autres joueurs ont gagné !`
+      });
+
+      // Sauvegarder et diffuser
+      await setDoc(gameRef, game);
+      io.to(roomId).emit("gameUpdated", game);
+      return; // On s'arrête là
+    }
+
+    // ************
+    // Si on n'a PAS atteint 95 => on continue normalement
+    // ************
+
+    // Passe la main au joueur suivant
+    const userIds = Object.keys(game.players);
+    const currentIndex = userIds.findIndex((id) => id === userId);
+    game.players[userId].isPlaying = false;
+
+    let nextIndex = currentIndex + game.direction;
+    if (nextIndex < 0) {
+      nextIndex = userIds.length - 1;
+    } else if (nextIndex >= userIds.length) {
+      nextIndex = 0;
+    }
+
+    // Sauter ceux qui ont perdu ou gagné (hasLost / hasWon)
+    let nextPlayerId = userIds[nextIndex];
+    while (game.players[nextPlayerId].hasLost || game.players[nextPlayerId].hasWon) {
+      nextIndex += game.direction;
+      if (nextIndex < 0) {
+        nextIndex = userIds.length - 1;
+      } else if (nextIndex >= userIds.length) {
+        nextIndex = 0;
+      }
+      nextPlayerId = userIds[nextIndex];
+    }
+
+    // On donne la main
+    game.players[nextPlayerId].isPlaying = true;
+
+    // Sauvegarde finale
+    await setDoc(gameRef, game);
+    io.to(roomId).emit("gameUpdated", game);
+
+  } catch (err) {
+    console.error("Erreur lors du playCard:", err);
+    socket.emit("error", { message: "Erreur lors du playCard." });
+  }
+});
+  
+  
+
+  function drawCards(deck, count) {
+    return deck.splice(0, count
+    );
+  }
+  
+
+  function baseCardValue(card) {
+    // Utilisé pour la toute première carte sur la table (pas d'effet spécial)
+    switch (card.value) {
+      case "A":
+        return 1;
+      case "J":
+      case "Q":
+      case "K":
+        return 10;
+      default:
+        return parseInt(card.value, 10);
+    }
+  }
+  
+  function parseCardValue(card) {
+    // Retourne un objet décrivant l'effet à appliquer
+    switch (card.value) {
+      case "A":
+        // A = +1
+        return { type: "ADD", amount: 1 };
+  
+      case "2":
+      case "3":
+      case "4":
+      case "5":
+      case "6":
+      case "7":
+      case "8":
+      case "9":
+      case "10":
+        return { type: "ADD", amount: parseInt(card.value, 10) };
+  
+      case "J":
+        // Change le sens du jeu
+        return { type: "REVERSE" };
+  
+      case "Q":
+        // Fais -10 au total
+        return { type: "MINUS", amount: 10 };
+  
+      case "K":
+        // Met le total à 70
+        return { type: "SET", amount: 70 };
+  
+      default:
+        // Sécurité
+        return { type: "ADD", amount: 0 };
+    }
+  }
+
+  function checkAlert(total, thresholds) {
+    // Vérifie si le total fait partie de la liste
+    if (thresholds.includes(total)) {
+      return `Alerte: le total est maintenant à ${total}!`;
+    }
+    return null;
+  }
+  
+  
 
   const generateDeck = () => {
     const suits = ["♠", "♥", "♦", "♣"];

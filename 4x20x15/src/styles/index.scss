@@ -87,6 +87,30 @@ body {
   }
 }
 
+// slideLeft: Apparition en glissement vers la gauche
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// slideRight: Apparition en glissement vers la droite
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 // pop: Apparition en pop (effet de rebond)
 @keyframes pop {
   0% {
