@@ -1,0 +1,125 @@
+//? src/styles/index.scss
+
+:root {
+  // Variables de couleurs
+  --background-dark: #121212;
+  --card-dark: #171717;
+  --font-dark: #efefef;
+  --background-light: #ededed;
+  --card-light: #e8e8e8;
+  --font-light: #101010;
+  --primary-red: #bb1d1d;
+  --primary-blue: #1d57bb;
+  --primary-green: #176c17;
+  --primary-yellow: #cbcb2d;
+
+  // Choix du thème
+  --background: var(--background-dark);
+  --card: var(--card-dark);
+  --font: var(--font-dark);
+  --primary: var(--primary-red);
+}
+// Import Google Font
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap");
+
+// Configuration globale
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+// Styles de base
+body {
+  font-family: "Outfit", sans-serif;
+  background-color: var(--background);
+  color: var(--font);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+// Styles du conteneur racine
+#root {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+// Animations globales
+// fadeIn: Apparition en fondu
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// slideDown: Apparition en glissement vers le bas
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// slideUp: Apparition en glissement vers le haut
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// slideLeft: Apparition en glissement vers la gauche
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// slideRight: Apparition en glissement vers la droite
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// pop: Apparition en pop (effet de rebond)
+@keyframes pop {
+  0% {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

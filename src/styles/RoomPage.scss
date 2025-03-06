@@ -1,0 +1,197 @@
+//? src/styles/RoomPage.scss
+
+// importer les variables a partir de index.scss
+@import "./index.scss";
+
+// Styles spécifiques à la page Room
+.room-page {
+  text-align: center;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+
+  // Titre
+  h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--font);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  // Conteneur de saisie de nom de salle
+  .room-input {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background-color: var(--card);
+    padding: 20px;
+    margin-bottom: 30px;
+    border-radius: 8px;
+
+    // Saisie de nom de salle
+    input {
+      width: 70%;
+      max-width: 400px;
+      padding: 15px;
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      background-color: var(--card);
+      color: var(--font);
+      font-size: 1rem;
+    }
+
+    // Bouton pour rejoindre une salle
+    button {
+      width: 20%;
+      background-color: var(--primary);
+      color: var(--font);
+      border: none;
+      padding: 15px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+    }
+  }
+
+  // Conteneur pour le Bouton de création de salle
+  .button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 400px;
+
+    // Bouton de création de salle
+    button {
+      background-color: var(--card);
+      color: var(--font);
+      border: none;
+      border: 2px solid var(--primary);
+      padding: 15px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+      text-align: center;
+    }
+  }
+
+  // Conteneur de détails de salle
+  .room-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 20px;
+    border-radius: 8px;
+
+    // Conteneur de titre de salle
+    .room-title {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      background-color: var(--card);
+      height: 100px;
+      width: 100%;
+      margin-bottom: 30px;
+      border-radius: 8px;
+
+      // Texte ("Room:")
+      h3 {
+        margin: 0;
+      }
+
+      // Nom de la salle
+      h1 {
+        margin: 0;
+      }
+    }
+
+    // Conteneur de joueurs de salle
+    .room-players {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 30px;
+      background-color: var(--card);
+      padding: 10px;
+      border-radius: 8px;
+
+      // Titre de la liste des joueurs
+      h2 {
+        margin: 0;
+        margin-bottom: 15px;
+      }
+
+      // Liste des joueurs
+      ul {
+        list-style: none;
+        padding: 0;
+        width: 80%;
+
+        // Élément de liste (joueur)
+        li {
+          background-color: var(--primary);
+          color: var(--font);
+          padding: 10px;
+          border-radius: 6px;
+          margin-bottom: 10px;
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          position: relative;
+
+          // Avatar du joueur
+          .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 15%;
+            background-color: var(--card);
+          }
+
+          // Nom d'utilisateur du joueur
+          .username {
+            font-size: 1rem;
+            font-weight: 600;
+          }
+
+          // Bouton de suppression de joueur
+          .remove-button {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: transparent;
+            border: none;
+
+            // Icône de suppression
+            img {
+              width: 25px;
+              height: 25px;
+            }
+          }
+        }
+      }
+    }
+
+    // Bouton de démarrage de partie
+    .start-button {
+      background-color: var(--primary);
+      color: var(--font);
+      border: none;
+      padding: 15px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+      width: 100%;
+    }
+  }
+}
