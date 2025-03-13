@@ -1,3 +1,4 @@
+// src/pages/GamePage.js
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
@@ -5,14 +6,17 @@ import { auth } from "../firebaseConfig.js";
 import "../styles/GamePage.scss";
 
 // Socket global
-const socket = io(process.env.REACT_APP_SERVER_URL || "https://4x20x15-production.up.railway.app/");
+const socket = io("http://192.168.1.29:3001");
+// const socket = io("https://5158-176-128-221-167.ngrok-free.app", {
+//   transports: ["websocket"],
+// });
 
 const GamePage = () => {
   const { id: roomId } = useParams();
   const [currentUser, setCurrentUser] = useState(null);
   const [game, setGame] = useState(null);
 
-  // Écoute l'état de connexion Firebase
+  // Écouter l’état de connexion Firebase
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setCurrentUser(user);
@@ -20,7 +24,7 @@ const GamePage = () => {
     return () => unsubscribe();
   }, []);
 
-  // Rejoindre la partie
+  // Rejoindre la partie côté socket
   useEffect(() => {
     if (!currentUser) return;
 
@@ -47,9 +51,10 @@ const GamePage = () => {
     };
   }, [currentUser, roomId]);
 
-  // Fonction pour jouer une carte
+  // Jouer une carte
   const playCard = (card) => {
     if (!currentUser) return;
+
     socket.emit("playCard", {
       roomId,
       userId: currentUser.uid,
@@ -61,18 +66,22 @@ const GamePage = () => {
     return <div>Chargement de la partie...</div>;
   }
 
-  // Récupérer mes infos dans game.players
+  // Récupérer MES infos
   const myPlayer = game.players[currentUser.uid] || {};
 
-  // Dernière carte jouée (si existe)
+  // Dernière carte jouée
   const lastCard = game.playedCards?.[game.playedCards.length - 1];
 
   // Savoir si la partie est finie
   const isGameOver = !!game.gameOver;
 
+  // Vérifier si c'est MON tour
+  const myTurn = game.turnQueue?.[0] === currentUser.uid;
+
   return (
     <div className="game-page">
       <h1>Partie: {roomId}</h1>
+
       {isGameOver && (
         <div className="game-over-message">
           <h2>La partie est terminée !</h2>
@@ -85,11 +94,12 @@ const GamePage = () => {
       <div className="game-players">
         {Object.keys(game.players).map((pid) => {
           const player = game.players[pid];
+          const isTurn = game.turnQueue?.[0] === pid; // Compare pid et premier de la file
           return (
             <div
               key={pid}
-              className={`player-info 
-                ${player.isPlaying ? "itsTurn" : ""}
+              className={`player-info
+                ${isTurn ? "itsTurn" : ""}
                 ${player.hasLost ? "lost" : ""}
                 ${player.hasWon ? "won" : ""}
               `}
@@ -114,7 +124,6 @@ const GamePage = () => {
             >
               <div className="card-value">{lastCard.value}</div>
               <div className="card-suit">{lastCard.suit}</div>
-
             </div>
           ) : (
             <div>Aucune carte encore jouée</div>
@@ -141,8 +150,11 @@ const GamePage = () => {
                   card.suit === "♠" || card.suit === "♣" ? "black" : "red"
                 }`}
                 onClick={() => {
-                  if (myPlayer.isPlaying && !isGameOver) {
+                  if (myTurn && !isGameOver) {
                     playCard(card);
+                  } else {
+                    alert("Ce n'est pas votre tour !");
+                    // alert("J'aime les grosses bites")
                   }
                 }}
               >

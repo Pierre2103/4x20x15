@@ -279,6 +279,7 @@ io.on("connection", (socket) => {
   
   
 //? CREER UNE PARTIE
+// Dans startGame
 socket.on("startGame", async ({ roomId }) => {
   const room = activeRooms[roomId];
   if (!room) {
@@ -293,21 +294,27 @@ socket.on("startGame", async ({ roomId }) => {
     return;
   }
 
+  // On mélange le deck
   const deck = shuffleDeck(generateDeck());
 
+  // On construit l'objet "players" comme avant
   const players = {};
-  room.players.forEach((player, idx) => {
+  room.players.forEach((player) => {
     players[player.id] = {
       username: player.username,
       avatar: player.avatar,
       penalties: 0,
-      isPlaying: idx === 0, // Le premier de la liste commence
-      hasLost: false,       // Personne n'a encore perdu
+      hasLost: false,
+      hasWon: false,
       cards: drawCards(deck, 3),
     };
   });
 
-  // Première carte
+  // On crée turnQueue avec tous les userIds, dans l'ordre
+  // tel que room.players est stocké (ou on peut mélanger pour un ordre aléatoire)
+  const turnQueue = room.players.map((p) => p.id);
+
+  // La première carte
   const firstCard = deck.shift();
   const playedCards = [firstCard];
   const initialTotal = baseCardValue(firstCard);
@@ -317,8 +324,10 @@ socket.on("startGame", async ({ roomId }) => {
     deck,
     playedCards,
     total: initialTotal,
-    direction: 1,  // sens normal
+    direction: 1,       // si vous voulez garder l'info du sens
+    turnQueue,          // VOICI la file d'ordre
     players,
+    gameOver: false,
   };
 
   await setDoc(doc(collection(db, "games"), roomId), game);
@@ -326,6 +335,7 @@ socket.on("startGame", async ({ roomId }) => {
 
   console.log(`Game started pour room ${roomId}`);
 });
+
 
 
 
@@ -360,147 +370,135 @@ socket.on("startGame", async ({ roomId }) => {
 
 
   //? Jouer une carte
-// La fonction socket.on("playCard", ...) réécrite :
-socket.on("playCard", async ({ roomId, userId, card }) => {
-  try {
-    const gameRef = doc(db, "games", roomId);
-    const gameSnapshot = await getDoc(gameRef);
-
-    if (!gameSnapshot.exists()) {
-      socket.emit("error", { message: "Partie introuvable" });
-      return;
-    }
-
-    const game = gameSnapshot.data();
-
-    // Vérifie que le joueur est bien dans la partie
-    if (!game.players[userId]) {
-      socket.emit("error", { message: "Vous n'êtes pas dans cette partie." });
-      return;
-    }
-
-    // Vérifie que c'est bien son tour
-    if (!game.players[userId].isPlaying) {
-      socket.emit("error", { message: "Ce n'est pas votre tour !" });
-      return;
-    }
-
-    // Retrouver la carte dans la main du joueur
-    const playerCards = game.players[userId].cards;
-    const cardIndex = playerCards.findIndex(
-      (c) => c.suit === card.suit && c.value === card.value
-    );
-    if (cardIndex === -1) {
-      socket.emit("error", { message: "Carte introuvable dans votre main." });
-      return;
-    }
-
-    // Retirer la carte de la main et l'ajouter à playedCards
-    const [played] = playerCards.splice(cardIndex, 1);
-    game.playedCards.push(played);
-
-    // Appliquer l'effet spécial
-    const effect = parseCardValue(played);
-    switch (effect.type) {
-      case "ADD":
-        game.total += effect.amount;
-        break;
-      case "MINUS":
-        game.total -= effect.amount;
-        break;
-      case "SET":
-        game.total = effect.amount;
-        break;
-      case "REVERSE":
-        game.direction *= -1;
-        break;
-      default:
-        // rien
-        break;
-    }
-
-    // Piocher une carte si le deck n'est pas vide
-    if (game.deck.length > 0) {
-      const newCard = game.deck.shift();
-      game.players[userId].cards.push(newCard);
-    }
-
-    // Vérifier l’alerte
-    const alertMsg = checkAlert(game.total, ALERT_THRESHOLDS);
-    if (alertMsg) {
-      io.to(roomId).emit("alertMessage", { message: alertMsg });
-    }
-
-    // Vérifier la lose condition (≥ 95)
-    if (game.total >= LOOSE_THRESHOLD) {
-      // => Ce joueur perd, tous les autres gagnent, la partie s'arrête
-
-      // Marquer ce joueur comme perdant
-      game.players[userId].hasLost = true;
-      game.players[userId].isPlaying = false;
-
-      // Tous les autres joueurs "gagnent"
-      Object.keys(game.players).forEach((pid) => {
-        if (pid !== userId) {
-          game.players[pid].hasWon = true;
-          game.players[pid].isPlaying = false; 
-        }
-      });
-
-      // Optionnel : on peut marquer le jeu comme terminé
-      game.gameOver = true;
-
-      // Émettre un message global
-      io.to(roomId).emit("alertMessage", {
-        message: `Le total est ${game.total} ! ${game.players[userId].username} a perdu, les autres joueurs ont gagné !`
-      });
-
-      // Sauvegarder et diffuser
+  socket.on("playCard", async ({ roomId, userId, card }) => {
+    try {
+      const gameRef = doc(db, "games", roomId);
+      const gameSnapshot = await getDoc(gameRef);
+  
+      if (!gameSnapshot.exists()) {
+        socket.emit("error", { message: "Partie introuvable" });
+        return;
+      }
+  
+      const game = gameSnapshot.data();
+  
+      // Vérifier que le joueur existe
+      if (!game.players[userId]) {
+        socket.emit("error", { message: "Vous n'êtes pas dans cette partie." });
+        return;
+      }
+  
+      // Vérifier que la partie n'est pas finie
+      if (game.gameOver) {
+        socket.emit("error", { message: "La partie est terminée !" });
+        return;
+      }
+  
+      // Vérifier que c'est au tour de userId
+      if (game.turnQueue[0] !== userId) {
+        socket.emit("error", { message: "Ce n'est pas votre tour !" });
+        return;
+      }
+  
+      // Retrouver la carte
+      const playerCards = game.players[userId].cards || [];
+      const cardIndex = playerCards.findIndex(
+        (c) => c.suit === card.suit && c.value === card.value
+      );
+      if (cardIndex === -1) {
+        socket.emit("error", { message: "Carte introuvable dans votre main." });
+        return;
+      }
+  
+      // Retirer la carte et la poser
+      const [played] = playerCards.splice(cardIndex, 1);
+      game.playedCards.push(played);
+  
+      // Appliquer l'effet
+      const effect = parseCardValue(played);
+      switch (effect.type) {
+        case "ADD":
+          game.total += effect.amount;
+          break;
+        case "MINUS":
+          game.total -= effect.amount;
+          break;
+        case "SET":
+          game.total = effect.amount;
+          break;
+        case "REVERSE":
+          // On inverse la file
+          game.turnQueue.reverse();
+          // On peut aussi inverser `game.direction` si on garde cette info
+          // game.direction *= -1;
+          
+          break;
+        default:
+          // rien
+          break;
+      }
+  
+      // Piocher
+      if (game.deck.length > 0) {
+        const newCard = game.deck.shift();
+        game.players[userId].cards.push(newCard);
+      }
+  
+      // Vérifier alert
+      const alertMsg = checkAlert(game.total, ALERT_THRESHOLDS);
+      if (alertMsg) {
+        io.to(roomId).emit("alertMessage", { message: alertMsg });
+      }
+  
+      // Vérifier lose condition (≥ 95)
+      if (game.total >= LOOSE_THRESHOLD) {
+        // Le joueur qui a provoqué ça perd
+        game.players[userId].hasLost = true;
+        // On le retire de la file
+        game.turnQueue = game.turnQueue.filter((id) => id !== userId);
+  
+        // Tous les autres gagnent => on peut marquer hasWon = true
+        Object.keys(game.players).forEach((pid) => {
+          if (pid !== userId) {
+            game.players[pid].hasWon = true;
+          }
+        });
+  
+        // Fin de partie
+        game.gameOver = true;
+  
+        io.to(roomId).emit("alertMessage", {
+          message: `Le total est ${game.total} ! ${game.players[userId].username} a perdu, les autres ont gagné !`,
+        });
+  
+        await setDoc(gameRef, game);
+        io.to(roomId).emit("gameUpdated", game);
+        return;
+      }
+  
+      // ***********
+      // PAS DE PERTE => on continue
+      // ***********
+  
+      // On défile le premier joueur, et on le remet en fin de file
+      
+      const current = game.turnQueue.shift(); // c'est userId
+      game.turnQueue.push(current);
+  
+      // S'il ne reste qu'un joueur dans la file, on peut aussi gérer un
+      // cas de "fin de partie" différent, etc.
+  
+      // Sauvegarder
       await setDoc(gameRef, game);
       io.to(roomId).emit("gameUpdated", game);
-      return; // On s'arrête là
+  
+    } catch (err) {
+      console.error("Erreur lors du playCard:", err);
+      socket.emit("error", { message: "Erreur lors du playCard." });
     }
+  });
+  
 
-    // ************
-    // Si on n'a PAS atteint 95 => on continue normalement
-    // ************
-
-    // Passe la main au joueur suivant
-    const userIds = Object.keys(game.players);
-    const currentIndex = userIds.findIndex((id) => id === userId);
-    game.players[userId].isPlaying = false;
-
-    let nextIndex = currentIndex + game.direction;
-    if (nextIndex < 0) {
-      nextIndex = userIds.length - 1;
-    } else if (nextIndex >= userIds.length) {
-      nextIndex = 0;
-    }
-
-    // Sauter ceux qui ont perdu ou gagné (hasLost / hasWon)
-    let nextPlayerId = userIds[nextIndex];
-    while (game.players[nextPlayerId].hasLost || game.players[nextPlayerId].hasWon) {
-      nextIndex += game.direction;
-      if (nextIndex < 0) {
-        nextIndex = userIds.length - 1;
-      } else if (nextIndex >= userIds.length) {
-        nextIndex = 0;
-      }
-      nextPlayerId = userIds[nextIndex];
-    }
-
-    // On donne la main
-    game.players[nextPlayerId].isPlaying = true;
-
-    // Sauvegarde finale
-    await setDoc(gameRef, game);
-    io.to(roomId).emit("gameUpdated", game);
-
-  } catch (err) {
-    console.error("Erreur lors du playCard:", err);
-    socket.emit("error", { message: "Erreur lors du playCard." });
-  }
-});
   
   
 
