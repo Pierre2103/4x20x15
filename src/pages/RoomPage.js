@@ -7,7 +7,11 @@ import "../styles/RoomPage.scss";
 import arrow_back from "../img/icons/arrow-back.svg";
 import cancel from "../img/icons/cancel.svg";
 
-const socket = io(process.env.REACT_APP_SERVER_URL || "http://localhost:3001");
+const socket = io("http://192.168.1.29:3001");
+// const socket = io("https://5158-176-128-221-167.ngrok-free.app", {
+//   transports: ["websocket"],
+// });
+
 
 const RoomPage = () => {
   const [roomId, setRoomId] = useState("");
