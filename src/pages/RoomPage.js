@@ -1,17 +1,15 @@
 //? src/pages/RoomPage.js
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
-import { auth } from "../firebaseConfig.js";
 import { update as jdenticonUpdate } from "jdenticon";
 import "../styles/RoomPage.scss";
 import arrow_back from "../img/icons/arrow-back.svg";
 import cancel from "../img/icons/cancel.svg";
 
-const socket = io("http://192.168.1.29:3001");
+const socket = io("http://192.168.1.19:3001");
 // const socket = io("https://5158-176-128-221-167.ngrok-free.app", {
 //   transports: ["websocket"],
 // });
-
 
 const RoomPage = () => {
   const [roomId, setRoomId] = useState("");
@@ -19,36 +17,38 @@ const RoomPage = () => {
 
   // Crée une room
   const createRoom = () => {
-    const user = auth.currentUser;
+    const storedUser = JSON.parse(localStorage.getItem("user"));
 
-    if (!user) {
+    if (!storedUser || !storedUser.userId) {
       alert("Vous devez être connecté pour créer une room.");
       return;
     }
 
     socket.emit("createRoom", {
-      hostId: user.uid,
+      hostId: storedUser.userId,
     });
   };
 
   // Rejoint une room
   const joinRoom = () => {
-    const user = auth.currentUser;
+    const storedUser = JSON.parse(localStorage.getItem("user"));
 
-    if (!user) {
+    if (!storedUser || !storedUser.userId) {
       alert("Vous devez être connecté pour rejoindre une room.");
       return;
     }
 
     socket.emit("joinRoom", {
       roomId,
-      userId: user.uid,
+      userId: storedUser.userId,
     });
   };
 
   // Supprime un joueur de la room
   const removePlayer = (playerId) => {
-    if (!currentRoom || currentRoom.hostId !== auth.currentUser.uid) {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+
+    if (!currentRoom || currentRoom.hostId !== storedUser.userId) {
       alert("Seul l'hôte peut supprimer un joueur.");
       return;
     }
@@ -58,7 +58,9 @@ const RoomPage = () => {
 
   // Démarre la partie
   const startGame = () => {
-    if (!currentRoom || currentRoom.hostId !== auth.currentUser.uid) {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+
+    if (!currentRoom || currentRoom.hostId !== storedUser.userId) {
       alert("Seul l'hôte peut commencer la partie.");
       return;
     }
@@ -99,42 +101,43 @@ const RoomPage = () => {
       }
     
       const { playerId } = data;
-      const user = auth.currentUser;
+      const storedUser = JSON.parse(localStorage.getItem("user"));
     
       console.log(`Joueur supprimé : ${playerId}`);
-      console.log(`Utilisateur actuel : ${user.uid}`);
+      console.log(`Utilisateur actuel : ${storedUser.userId}`);
     
-      if (user && user.uid === playerId) {
-        console.log(`Utilisateur actuel supprimé : ${user.uid}`);
+      if (storedUser && storedUser.userId === playerId) {
+        console.log(`Utilisateur actuel supprimé : ${storedUser.userId}`);
         setCurrentRoom(null);
         window.location.href = "/room";
       }
     });
-    
-    
+
+    socket.on("connect_error", (err) => {
+      console.error("Connection error:", err);
+    });
 
     return () => socket.off(); // Nettoyer les listeners pour éviter les fuites
   }, [currentRoom]);
 
   // Enregistre l'utilisateur connecté
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        socket.emit("registerUser", user.uid);
-      } else {
-        console.error("Aucun utilisateur connecté pour registerUser");
-      }
-    });
-    return () => unsubscribe(); // Nettoyer le listener pour éviter les fuites
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser && storedUser.userId) {
+      socket.emit("registerUser", storedUser.userId);
+    } else {
+      console.error("Aucun utilisateur connecté pour registerUser");
+    }
   }, []);
 
   // Supprime le joueur de la room avant de quitter la page
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (currentRoom && currentRoom.status !== "playing" && auth.currentUser) {
+      const storedUser = JSON.parse(localStorage.getItem("user"));
+      if (currentRoom && currentRoom.status !== "playing" && storedUser) {
         socket.emit("removePlayer", {
           roomId: currentRoom.id,
-          playerId: auth.currentUser.uid,
+          playerId: storedUser.userId,
         });
       }
     };
@@ -150,10 +153,11 @@ const RoomPage = () => {
       <button
         className="back-button"
         onClick={() => {
-          if (currentRoom && auth.currentUser) {
+          const storedUser = JSON.parse(localStorage.getItem("user"));
+          if (currentRoom && storedUser) {
             socket.emit("removePlayer", {
               roomId: currentRoom.id,
-              playerId: auth.currentUser.uid,
+              playerId: storedUser.userId,
             });
           }
           window.location.href = "/home";
@@ -204,7 +208,7 @@ const RoomPage = () => {
                 {player.username}{" "}
                 {player.id === currentRoom.hostId ? "(Host)" : ""}
               </span>
-              {auth.currentUser?.uid === currentRoom.hostId &&
+              {JSON.parse(localStorage.getItem("user"))?.userId === currentRoom.hostId &&
                 player.id !== currentRoom.hostId && (
                   <button
                     className="remove-button"
@@ -217,7 +221,7 @@ const RoomPage = () => {
           ))}
         </ul>
       </div>
-      {auth.currentUser?.uid === currentRoom.hostId && (
+      {JSON.parse(localStorage.getItem("user"))?.userId === currentRoom.hostId && (
         <button className="start-button" onClick={startGame}>
           Commencer le jeu
         </button>

@@ -1,44 +1,40 @@
 //? src/pages/AuthPage.js
 import React, { useState } from "react";
-import {
-  signInWithPopup,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-} from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore"; // Import Firestore functions
-import { auth, googleProvider, db } from "../firebaseConfig.js"; // Import Firestore
+import { db } from "../firebaseConfig.js"; // Import Firestore
 import "../styles/AuthPage.scss";
-import google_logo from "../img/icons/google.png";
+import { v4 as uuidv4 } from 'uuid'; // Import UUID library
 
 const AuthPage = () => {
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
 
   // Crée un utilisateur dans Firestore s'il n'existe pas
-  const createUserInFirestore = async (user, isGoogle = false) => {
-    const userDoc = doc(db, "users", user.uid);
+  const createUserInFirestore = async (userId, username) => {
+    const userDoc = doc(db, "users", userId);
     const userSnapshot = await getDoc(userDoc);
 
     if (!userSnapshot.exists()) {
       const avatar = Math.random().toString(36).substring(2, 10); // Chaîne aléatoire pour l'avatar
       await setDoc(userDoc, {
-        uid: user.uid,
-        username: isGoogle
-          ? user.displayName || "Utilisateur"
-          : "Nouvel utilisateur",
-        email: user.email,
+        userId: userId,
+        username: username,
         avatar: avatar,
       });
     }
   };
 
-  // Connexion avec email et mot de passe
-  const handleLoginWithEmail = async () => {
+  // Connexion avec le nom d'utilisateur
+  const handleLoginWithUsername = async () => {
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      const user = result.user;
-      localStorage.setItem("user", JSON.stringify(user)); // Stocke l'utilisateur
+      let userId = localStorage.getItem("userId");
+      if (!userId) {
+        userId = uuidv4(); // Génère un nouvel ID unique
+        localStorage.setItem("userId", userId);
+      }
+
+      await createUserInFirestore(userId, username);
+
+      localStorage.setItem("user", JSON.stringify({ userId, username })); // Stocke l'utilisateur
       window.location.href = "/home";
     } catch (error) {
       console.error("Erreur de connexion :", error.message);
@@ -46,74 +42,22 @@ const AuthPage = () => {
     }
   };
 
-  // Inscription avec email et mot de passe
-  const handleRegisterWithEmail = async () => {
-    try {
-      const result = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = result.user;
-
-      await createUserInFirestore(user);
-
-      localStorage.setItem("user", JSON.stringify(user)); // Stocke l'utilisateur
-      window.location.href = "/home";
-    } catch (error) {
-      console.error("Erreur d'inscription :", error.message);
-      alert("Erreur d'inscription : " + error.message);
-    }
-  };
-
-  // Connexion avec Google
-  const handleLoginWithGoogle = async () => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-
-      await createUserInFirestore(user, true);
-
-      localStorage.setItem("user", JSON.stringify(user)); // Stocke l'utilisateur
-      window.location.href = "/home";
-    } catch (error) {
-      console.error("Erreur de connexion avec Google :", error.message);
-      alert("Erreur de connexion avec Google : " + error.message);
-    }
-  };
-
   return (
     <div className="auth-page">
-      <h1>{isRegistering ? "Inscription" : "Connexion"}</h1>
+      <h1>Connexion</h1>
       <input
-        type="email"
-        placeholder="Email"
-        onChange={(e) => setEmail(e.target.value)}
-        id="email"
-      />
-      <br />
-      <input
-        type="password"
-        placeholder="Mot de passe"
-        onChange={(e) => setPassword(e.target.value)}
-        id="password"
+        type="text"
+        placeholder="Nom d'utilisateur"
+        onChange={(e) => setUsername(e.target.value)}
+        id="username"
       />
       <br />
       <button
-        onClick={isRegistering ? handleRegisterWithEmail : handleLoginWithEmail}
+        onClick={handleLoginWithUsername}
       >
-        {isRegistering ? "S'inscrire" : "Se connecter"}
+        Se connecter
       </button>
       <br />
-      <button onClick={handleLoginWithGoogle} className="google-button">
-        <img src={google_logo} alt="Google" />
-      </button>
-      <br />
-      <p onClick={() => setIsRegistering(!isRegistering)}>
-        {isRegistering
-          ? "Déjà un compte ? Connectez-vous ici"
-          : "Pas encore de compte ? Inscrivez-vous ici"}
-      </p>
     </div>
   );
 };

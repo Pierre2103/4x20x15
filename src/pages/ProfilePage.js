@@ -1,9 +1,8 @@
 //? src/pages/ProfilePage.js
 import React, { useEffect, useState } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { auth, db } from "../firebaseConfig.js";
+import { db } from "../firebaseConfig.js";
 import { update as jdenticonUpdate } from "jdenticon";
-import { onAuthStateChanged } from "firebase/auth";
 import "../styles/ProfilePage.scss";
 import arrow_back from "../img/icons/arrow-back.svg";
 
@@ -18,7 +17,8 @@ const ProfilePage = () => {
       const randomString = Math.random().toString(36).substring(2, 10);
       setAvatar(randomString);
 
-      const userDoc = doc(db, "users", auth.currentUser.uid);
+      const storedUser = JSON.parse(localStorage.getItem("user"));
+      const userDoc = doc(db, "users", storedUser.userId);
       await updateDoc(userDoc, { avatar: randomString });
     } catch (error) {
       console.error(
@@ -30,8 +30,9 @@ const ProfilePage = () => {
 
   // Met à jour le pseudo dans Firestore
   const updateUsername = async () => {
-    if (!auth.currentUser || !username.trim()) return;
-    const userDoc = doc(db, "users", auth.currentUser.uid);
+    if (!username.trim()) return;
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const userDoc = doc(db, "users", storedUser.userId);
 
     try {
       await updateDoc(userDoc, { username });
@@ -56,43 +57,41 @@ const ProfilePage = () => {
   // Déconnexion de l'utilisateur
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("userId");
     window.location.href = "/";
   };
 
   // Charge les données utilisateur
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const fetchUserData = async () => {
-          try {
-            const userDoc = doc(db, "users", user.uid);
-            const userSnapshot = await getDoc(userDoc);
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser && storedUser.userId) {
+      const fetchUserData = async () => {
+        try {
+          const userDoc = doc(db, "users", storedUser.userId);
+          const userSnapshot = await getDoc(userDoc);
 
-            if (userSnapshot.exists()) {
-              const userData = userSnapshot.data();
-              setUsername(userData.username || ""); // Définit le pseudo
-              setAvatar(userData.avatar || "default"); // Définit l'avatar
-            } else {
-              console.error("Aucune donnée utilisateur trouvée dans Firestore");
-            }
-          } catch (error) {
-            console.error(
-              "Erreur lors du chargement des données utilisateur :",
-              error.message
-            );
-          } finally {
-            setIsLoading(false);
+          if (userSnapshot.exists()) {
+            const userData = userSnapshot.data();
+            setUsername(userData.username || ""); // Définit le pseudo
+            setAvatar(userData.avatar || "default"); // Définit l'avatar
+          } else {
+            console.error("Aucune donnée utilisateur trouvée dans Firestore");
           }
-        };
+        } catch (error) {
+          console.error(
+            "Erreur lors du chargement des données utilisateur :",
+            error.message
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
 
-        fetchUserData();
-      } else {
-        console.error("Utilisateur non connecté");
-        setIsLoading(false);
-      }
-    });
-
-    return () => unsubscribe(); // Nettoyage du listener
+      fetchUserData();
+    } else {
+      console.error("Utilisateur non connecté");
+      setIsLoading(false);
+    }
   }, []);
 
   // Met à jour l'avatar avec Jdenticon
@@ -105,8 +104,6 @@ const ProfilePage = () => {
   }, [avatar]);
 
   if (isLoading) return <p>Chargement...</p>;
-  if (!auth.currentUser)
-    return <p>Veuillez vous connecter pour accéder à cette page.</p>;
 
   return (
     <div>
