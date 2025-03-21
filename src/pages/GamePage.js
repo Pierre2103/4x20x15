@@ -2,11 +2,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
-import { auth } from "../firebaseConfig.js";
 import "../styles/GamePage.scss";
 
 // Socket global
-const socket = io("http://192.168.1.29:3001");
+const socket = io("http://192.168.1.19:3001");
 // const socket = io("https://5158-176-128-221-167.ngrok-free.app", {
 //   transports: ["websocket"],
 // });
@@ -18,17 +17,18 @@ const GamePage = () => {
 
   // Écouter l’état de connexion Firebase
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setCurrentUser(user);
-    });
-    return () => unsubscribe();
+    const storedUser = JSON.parse(localStorage.getItem("user")); 
+    // const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUser(storedUser);
+    // });
+    // return () => unsubscribe();
   }, []);
 
   // Rejoindre la partie côté socket
   useEffect(() => {
     if (!currentUser) return;
 
-    socket.emit("joinGame", { roomId, userId: currentUser.uid });
+    socket.emit("joinGame", { roomId, userId: currentUser.userId });
 
     socket.on("gameStarted", (data) => {
       console.log("Game démarrée ou chargée:", data);
@@ -57,7 +57,7 @@ const GamePage = () => {
 
     socket.emit("playCard", {
       roomId,
-      userId: currentUser.uid,
+      userId: currentUser.userId,
       card,
     });
   };
@@ -67,7 +67,7 @@ const GamePage = () => {
   }
 
   // Récupérer MES infos
-  const myPlayer = game.players[currentUser.uid] || {};
+  const myPlayer = game.players[currentUser.userId] || {};
 
   // Dernière carte jouée
   const lastCard = game.playedCards?.[game.playedCards.length - 1];
@@ -76,7 +76,7 @@ const GamePage = () => {
   const isGameOver = !!game.gameOver;
 
   // Vérifier si c'est MON tour
-  const myTurn = game.turnQueue?.[0] === currentUser.uid;
+  const myTurn = game.turnQueue?.[0] === currentUser.userId;
 
   return (
     <div className="game-page">

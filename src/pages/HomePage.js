@@ -1,7 +1,6 @@
-//? src/pages/HomePage.js
 import React, { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebaseConfig.js";
+import { db } from "../firebaseConfig.js";
 import { update as jdenticonUpdate } from "jdenticon";
 import "../styles/HomePage.scss";
 
@@ -11,10 +10,11 @@ const HomePage = () => {
 
   // Charge les données utilisateur
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser && storedUser.userId) {
+      const fetchUserData = async () => {
         try {
-          const userDoc = doc(db, "users", user.uid);
+          const userDoc = doc(db, "users", storedUser.userId);
           const userSnapshot = await getDoc(userDoc);
 
           if (userSnapshot.exists()) {
@@ -28,13 +28,14 @@ const HomePage = () => {
             error.message
           );
         }
-      } else {
-        console.error("Utilisateur non connecté.");
-      }
-      setIsLoading(false); // Marquer comme chargé
-    });
+        setIsLoading(false); // Marquer comme chargé
+      };
 
-    return () => unsubscribe(); // Nettoyer le listener
+      fetchUserData();
+    } else {
+      console.error("Utilisateur non connecté.");
+      setIsLoading(false); // Marquer comme chargé
+    }
   }, []);
 
   // Met à jour l'avatar avec Jdenticon
