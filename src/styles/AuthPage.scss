@@ -56,23 +56,34 @@
     animation: pop 0.3s ease-in-out;
   }
 
-  // Bouton de connexion avec Google
-  .google-button {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
+  // Section de l'avatar
+  .avatar-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 30px;
+    background-color: var(--card);
+    padding: 10px;
+    border-radius: 8px;
 
-    // Logo Google
-    img {
-      width: 25px;
-      margin-right: 10px;
+    // Contenu de la section
+    .avatar-body {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+
+      // Visualisation de l'avatar
+      .avatar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: 2px solid var(--primary);
+        border-radius: 15%;
+      }
     }
-  }
-
-  p {
-    margin-top: 15px;
-    font-size: 14px;
-    text-align: center;
-    color: var(--primary);
   }
 }
