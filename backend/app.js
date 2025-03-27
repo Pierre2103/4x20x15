@@ -64,8 +64,6 @@ const getOrderedPlayerUsernames = async (roomId) => {
   return reorderedUsernames;
 };
 
-getOrderedPlayerUsernames("BUMLE");
-
 // Gestion des connexions Socket.IO
 io.on("connection", (socket) => {
   console.log(`Utilisateur connecté : ${socket.id}`);
