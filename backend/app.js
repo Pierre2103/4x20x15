@@ -43,9 +43,41 @@ const generateRoomId = () => {
     .join("");
 };
 
+//? Retourne la liste des joueurs d'une room dans le bonne ordre 
+const getOrderedPlayerUsernames = async (roomId) => {
+  const gameRef = doc(db, `games/${roomId}`);
+  const gameSnapshot = await getDoc(gameRef);
+
+  if (!gameSnapshot.exists()) {
+    throw new Error("Game not found");
+  }
+
+  const game = gameSnapshot.data();
+  const { turnQueue, players } = game;
+
+  const orderedUsernames = turnQueue.map(pid => players[pid]?.username).filter(Boolean);
+  
+  // Put the last items at the first position
+  const reorderedUsernames = orderedUsernames.slice(-1).concat(orderedUsernames.slice(0, -1));
+  
+  console.log(`Ordered usernames for room ${roomId}:`, reorderedUsernames);
+  return reorderedUsernames;
+};
+
+getOrderedPlayerUsernames("BUMLE");
+
 // Gestion des connexions Socket.IO
 io.on("connection", (socket) => {
   console.log(`Utilisateur connecté : ${socket.id}`);
+
+  socket.on("getOrderedPlayerUsernames", async ({ roomId }) => {
+    try {
+      const orderedUsernames = await getOrderedPlayerUsernames(roomId);
+      socket.emit("orderedPlayerUsernames", orderedUsernames);
+    } catch (error) {
+      socket.emit("error", { message: error.message });
+    }
+  });
 
   //? ENREGISTRER UN UTILISATEUR
   socket.on("registerUser", (userId) => {
@@ -127,6 +159,10 @@ io.on("connection", (socket) => {
   //? REJOINDRE UNE ROOM
   socket.on("joinRoom", async ({ roomId, userId }) => {
     try {
+      if (!roomId || !userId) {
+        socket.emit("error", { message: "Room ID ou User ID manquant" });
+        return;
+      }
       let room = activeRooms[roomId];
 
       // Si la room n'est pas en mémoire, la charger depuis Firestore
@@ -239,6 +275,10 @@ io.on("connection", (socket) => {
   //? SUPPRIMER UN JOUEUR DE LA ROOM SI LA PARTIE N'A PAS COMMENCÉ
   socket.on("removePlayer", async ({ roomId, playerId }) => {
     try {
+      if (!roomId || !playerId) {
+        socket.emit("error", { message: "Room ID ou Player ID manquant" });
+        return;
+      }
       const room = activeRooms[roomId];
   
       if (!room) {
@@ -279,61 +319,69 @@ io.on("connection", (socket) => {
   
   
 //? CREER UNE PARTIE
-// Dans startGame
 socket.on("startGame", async ({ roomId }) => {
-  const room = activeRooms[roomId];
-  if (!room) {
-    socket.emit("error", { message: "Room introuvable" });
-    return;
-  }
-
-  if (room.players.length < 2) {
-    socket.emit("error", {
-      message: "Pas assez de joueurs pour commencer la partie.",
+  try {
+    if (!roomId) {
+      socket.emit("error", { message: "Room ID manquant" });
+      return;
+    }
+    const room = activeRooms[roomId];
+    if (!room) {
+      socket.emit("error", { message: "Room introuvable" });
+      return;
+    }
+  
+    if (room.players.length < 2) {
+      socket.emit("error", {
+        message: "Pas assez de joueurs pour commencer la partie.",
+      });
+      return;
+    }
+  
+    // On mélange le deck
+    const deck = shuffleDeck(generateDeck());
+  
+    // On construit l'objet "players" comme avant
+    const players = {};
+    room.players.forEach((player) => {
+      players[player.id] = {
+        username: player.username,
+        avatar: player.avatar,
+        penalties: 0,
+        hasLost: false,
+        hasWon: false,
+        cards: drawCards(deck, 3),
+      };
     });
-    return;
-  }
-
-  // On mélange le deck
-  const deck = shuffleDeck(generateDeck());
-
-  // On construit l'objet "players" comme avant
-  const players = {};
-  room.players.forEach((player) => {
-    players[player.id] = {
-      username: player.username,
-      avatar: player.avatar,
-      penalties: 0,
-      hasLost: false,
-      hasWon: false,
-      cards: drawCards(deck, 3),
+  
+    // On crée turnQueue avec tous les userIds, dans l'ordre
+    // tel que room.players est stocké (ou on peut mélanger pour un ordre aléatoire)
+    const turnQueue = room.players.map((p) => p.id);
+  
+    // La première carte
+    const firstCard = deck.shift();
+    const playedCards = [firstCard];
+    const initialTotal = baseCardValue(firstCard);
+  
+    const game = {
+      roomId,
+      deck,
+      playedCards,
+      total: initialTotal,
+      direction: 1,       // si vous voulez garder l'info du sens
+      turnQueue,          // VOICI la file d'ordre
+      players,
+      gameOver: false,
     };
-  });
-
-  // On crée turnQueue avec tous les userIds, dans l'ordre
-  // tel que room.players est stocké (ou on peut mélanger pour un ordre aléatoire)
-  const turnQueue = room.players.map((p) => p.id);
-
-  // La première carte
-  const firstCard = deck.shift();
-  const playedCards = [firstCard];
-  const initialTotal = baseCardValue(firstCard);
-
-  const game = {
-    roomId,
-    deck,
-    playedCards,
-    total: initialTotal,
-    direction: 1,       // si vous voulez garder l'info du sens
-    turnQueue,          // VOICI la file d'ordre
-    players,
-    gameOver: false,
-  };
-
-  await setDoc(doc(collection(db, "games"), roomId), game);
-  io.to(roomId).emit("gameStarted", game);
-
-  console.log(`Game started pour room ${roomId}`);
+  
+    await setDoc(doc(collection(db, "games"), roomId), game);
+    io.to(roomId).emit("gameStarted", game);
+  
+    console.log(`Game started pour room ${roomId}`);
+  } catch (error) {
+    console.error("Erreur lors de la création de la partie :", error.message);
+    socket.emit("error", { message: "Erreur lors de la création de la partie" });
+  }
 });
 
 
@@ -345,24 +393,33 @@ socket.on("startGame", async ({ roomId }) => {
 
   //? REJOINDRE UNE PARTIE
   socket.on("joinGame", async ({ roomId, userId }) => {
-    const gameRef = doc(db, "games", roomId);
-    const gameSnapshot = await getDoc(gameRef);
-  
-    if (!gameSnapshot.exists()) {
-      socket.emit("error", { message: "Partie introuvable" });
-      return;
+    try {
+      if (!roomId || !userId) {
+        socket.emit("error", { message: "Room ID ou User ID manquant" });
+        return;
+      }
+      const gameRef = doc(db, "games", roomId);
+      const gameSnapshot = await getDoc(gameRef);
+    
+      if (!gameSnapshot.exists()) {
+        socket.emit("error", { message: "Partie introuvable" });
+        return;
+      }
+    
+      const game = gameSnapshot.data();
+      socket.join(roomId);
+    
+      // S’il manque direction, on le met à 1 (si la partie a pas encore commencé)
+      if (typeof game.direction !== "number") {
+        game.direction = 1;
+        await setDoc(gameRef, game);
+      }
+    
+      socket.emit("gameStarted", game);
+    } catch (error) {
+      console.error("Erreur lors de la jonction de la partie :", error.message);
+      socket.emit("error", { message: "Erreur lors de la jonction de la partie" });
     }
-  
-    const game = gameSnapshot.data();
-    socket.join(roomId);
-  
-    // S’il manque direction, on le met à 1 (si la partie a pas encore commencé)
-    if (typeof game.direction !== "number") {
-      game.direction = 1;
-      await setDoc(gameRef, game);
-    }
-  
-    socket.emit("gameStarted", game);
   });
   
   
@@ -372,6 +429,10 @@ socket.on("startGame", async ({ roomId }) => {
   //? Jouer une carte
   socket.on("playCard", async ({ roomId, userId, card }) => {
     try {
+      if (!roomId || !userId || !card) {
+        socket.emit("error", { message: "Room ID, User ID ou carte manquant" });
+        return;
+      }
       const gameRef = doc(db, "games", roomId);
       const gameSnapshot = await getDoc(gameRef);
   
