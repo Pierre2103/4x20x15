@@ -21,6 +21,7 @@
   // Section des joueurs en haut
   .game-players {
     display: flex;
+    overflow: auto;
     justify-content: space-around;
     width: 100%;
     animation: slideDown 1.5s;
@@ -35,9 +36,11 @@
       background-color: #f0f0f0;
       color: #000;
       padding: 10px;
+      justify-content: center;
       border-radius: 8px;
+      min-width: 100px;
 
-      &.itsTurn {
+      &:nth-child(2) {
         background-color: var(--primary);
         color: #fff;
       }
@@ -51,7 +54,6 @@
       }
 
       .player-name {
-        margin-top: 5px;
         font-size: 0.9rem;
         font-weight: 600;
       }

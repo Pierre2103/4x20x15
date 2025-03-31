@@ -6,7 +6,7 @@ import { toast, Toaster } from "react-hot-toast"; // Import react-hot-toast
 import "../styles/GamePage.scss";
 
 // Socket global
-const socket = io("http://192.168.1.19:3001");
+const socket = io("http://192.168.1.6:3001");
 // const socket = io("https://5158-176-128-221-167.ngrok-free.app", {
 //   transports: ["websocket"],
 // });
@@ -15,6 +15,7 @@ const GamePage = () => {
   const { id: roomId } = useParams();
   const [currentUser, setCurrentUser] = useState(null);
   const [game, setGame] = useState(null);
+  const [orderedUsernames, setOrderedUsernames] = useState([]);
 
   // Écouter l’état de connexion Firebase
   useEffect(() => {
@@ -36,6 +37,7 @@ const GamePage = () => {
     socket.on("gameUpdated", (data) => {
       console.log("Game mise à jour:", data);
       setGame(data);
+      socket.emit("getOrderedPlayerUsernames", { roomId }); // Refresh player list
     });
 
     socket.on("alertMessage", (data) => {
@@ -50,10 +52,17 @@ const GamePage = () => {
         });
     });
 
+    socket.emit("getOrderedPlayerUsernames", { roomId });
+
+    socket.on("orderedPlayerUsernames", (usernames) => {
+      setOrderedUsernames(usernames);
+    });
+
     return () => {
       socket.off("gameStarted");
       socket.off("gameUpdated");
       socket.off("alertMessage");
+      socket.off("orderedPlayerUsernames");
     };
   }, [currentUser, roomId]);
 
@@ -112,14 +121,12 @@ const GamePage = () => {
 
       {/* Liste des joueurs */}
       <div className="game-players">
-        {Object.keys(game.players).map((pid) => {
-          const player = game.players[pid];
-          const isTurn = game.turnQueue?.[0] === pid; // Compare pid et premier de la file
+        {orderedUsernames.map((username, index) => {
+          const player = Object.values(game.players).find(p => p.username === username);
           return (
             <div
-              key={pid}
+              key={player.userId}
               className={`player-info
-                ${isTurn ? "itsTurn" : ""}
                 ${player.hasLost ? "lost" : ""}
                 ${player.hasWon ? "won" : ""}
               `}
