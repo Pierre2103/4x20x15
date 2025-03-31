@@ -487,10 +487,13 @@ socket.on("startGame", async ({ roomId }) => {
           break;
         case "REVERSE":
           // On inverse la file
+          if (game.turnQueue.length < 3) {
+            // Si pas assez de joueurs, on ne fait rien
+            break;
+          }
           game.turnQueue.reverse();
           // On peut aussi inverser `game.direction` si on garde cette info
           // game.direction *= -1;
-          
           break;
         default:
           // rien
