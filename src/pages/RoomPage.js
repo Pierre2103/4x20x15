@@ -6,7 +6,7 @@ import "../styles/RoomPage.scss";
 import arrow_back from "../img/icons/arrow-back.svg";
 import cancel from "../img/icons/cancel.svg";
 
-const socket = io("http://192.168.1.6:3001");
+const socket = io("http://192.168.14.193:3001");
 // const socket = io("https://5158-176-128-221-167.ngrok-free.app", {
 //   transports: ["websocket"],
 // });

@@ -6,7 +6,7 @@ import { toast, Toaster } from "react-hot-toast"; // Import react-hot-toast
 import "../styles/GamePage.scss";
 
 // Socket global
-const socket = io("http://192.168.1.6:3001");
+const socket = io("http://192.168.14.193:3001");
 // const socket = io("https://5158-176-128-221-167.ngrok-free.app", {
 //   transports: ["websocket"],
 // });
@@ -92,6 +92,12 @@ const GamePage = () => {
 
   // Vérifier si c'est MON tour
   const myTurn = game.turnQueue?.[0] === currentUser.userId;
+
+  if (myTurn && !isGameOver) {
+    if (navigator.vibrate) {
+      navigator.vibrate(300); // Vibrate for 200ms
+    }
+  }
 
   return (
     <div className="game-page">
