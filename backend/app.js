@@ -468,6 +468,7 @@ socket.on("startGame", async ({ roomId }) => {
         game.gameOver = true;
   
         io.to(roomId).emit("alertMessage", {
+          type: "ended",
           message: `Le total est ${game.total} ! ${game.players[userId].username} a perdu, les autres ont gagné !`,
         });
   
@@ -561,7 +562,7 @@ socket.on("startGame", async ({ roomId }) => {
   function checkAlert(total, thresholds) {
     // Vérifie si le total fait partie de la liste
     if (thresholds.includes(total)) {
-      return `Alerte: le total est maintenant à ${total}!`;
+      return `Le total est maintenant à ${total}!`;
     }
     return null;
   }
