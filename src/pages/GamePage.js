@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
+import { toast, Toaster } from "react-hot-toast"; // Import react-hot-toast
 import "../styles/GamePage.scss";
 
 // Socket global
-const socket = io("http://192.168.1.6:3001");
+const socket = io("http://192.168.14.193:3001");
 // const socket = io("https://5158-176-128-221-167.ngrok-free.app", {
 //   transports: ["websocket"],
 // });
@@ -19,10 +20,7 @@ const GamePage = () => {
   // Écouter l’état de connexion Firebase
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user")); 
-    // const unsubscribe = auth.onAuthStateChanged((user) => {
       setCurrentUser(storedUser);
-    // });
-    // return () => unsubscribe();
   }, []);
 
   // Rejoindre la partie côté socket
@@ -43,7 +41,15 @@ const GamePage = () => {
     });
 
     socket.on("alertMessage", (data) => {
-      alert(data.message);
+      toast((t) => (
+          <span onClick={() => toast.dismiss(t.id)}>
+            {data.message}
+          </span>
+        ),
+        {
+          icon: data.type == 'ended' ? "🏆" : "🍻",
+          duration: data.type == 'ended' ? Infinity : 3000,
+        });
     });
 
     socket.emit("getOrderedPlayerUsernames", { roomId });
@@ -87,9 +93,29 @@ const GamePage = () => {
   // Vérifier si c'est MON tour
   const myTurn = game.turnQueue?.[0] === currentUser.userId;
 
+  if (myTurn && !isGameOver) {
+    if (navigator.vibrate) {
+      navigator.vibrate(300); // Vibrate for 200ms
+    }
+  }
+
   return (
     <div className="game-page">
       <h1>Partie: {roomId}</h1>
+
+      <div>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "var(--background)",
+              color: "var(--font)",
+              border: "1px solid var(--primary)",
+              fontSize: "1.2rem",
+            },
+          }}
+        />
+      </div>
 
       {isGameOver && (
         <div className="game-over-message">
@@ -160,7 +186,15 @@ const GamePage = () => {
                   if (myTurn && !isGameOver) {
                     playCard(card);
                   } else {
-                    alert("Ce n'est pas votre tour !");
+                    toast((t) => (
+                      <span onClick={() => toast.dismiss(t.id)}>
+                        Ce n'est pas votre tour !
+                      </span>
+                      ), 
+                      {
+                        icon: "🚫",
+                        duration: 3000,
+                      });
                   }
                 }}
               >

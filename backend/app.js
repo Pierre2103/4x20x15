@@ -487,10 +487,13 @@ socket.on("startGame", async ({ roomId }) => {
           break;
         case "REVERSE":
           // On inverse la file
+          if (game.turnQueue.length < 3) {
+            // Si pas assez de joueurs, on ne fait rien
+            break;
+          }
           game.turnQueue.reverse();
           // On peut aussi inverser `game.direction` si on garde cette info
           // game.direction *= -1;
-          
           break;
         default:
           // rien
@@ -527,6 +530,7 @@ socket.on("startGame", async ({ roomId }) => {
         game.gameOver = true;
   
         io.to(roomId).emit("alertMessage", {
+          type: "ended",
           message: `Le total est ${game.total} ! ${game.players[userId].username} a perdu, les autres ont gagné !`,
         });
   
@@ -620,7 +624,7 @@ socket.on("startGame", async ({ roomId }) => {
   function checkAlert(total, thresholds) {
     // Vérifie si le total fait partie de la liste
     if (thresholds.includes(total)) {
-      return `Alerte: le total est maintenant à ${total}!`;
+      return `Le total est maintenant à ${total}!`;
     }
     return null;
   }
