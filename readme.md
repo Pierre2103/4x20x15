@@ -62,3 +62,12 @@
 - Faire en sorte que le programme **exécute le backend et le frontend en une seule commande**.
   - Éviter d'avoir à **lancer le backend et le frontend séparément**.
   - Éviter d'utiliser **deux ports différents** pour le backend et le frontend.
+
+### .Env
+
+Pour lancer l'application autrement que sur un localhost vous devez créer un fichier `.env` à la racine du projet et y ajouter les variables d'environnement suivantes :
+
+```env
+# URL for the backend API
+REACT_APP_SOCKET_URL=http://xxx.xxx.x.xxx:xxxx
+```
