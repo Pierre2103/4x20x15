@@ -5,8 +5,10 @@ import { update as jdenticonUpdate } from "jdenticon";
 import "../styles/RoomPage.scss";
 import arrow_back from "../img/icons/arrow-back.svg";
 import cancel from "../img/icons/cancel.svg";
+import { toast, Toaster } from "react-hot-toast"; // Import react-hot-toast
 
-const socket = io("http://192.168.14.193:3001");
+console.log("URL du socket:", process.env.REACT_APP_SOCKET_URL || "http://localhost:3001");
+const socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:3001");
 // const socket = io("https://5158-176-128-221-167.ngrok-free.app", {
 //   transports: ["websocket"],
 // });
@@ -62,6 +64,19 @@ const RoomPage = () => {
 
     if (!currentRoom || currentRoom.hostId !== storedUser.userId) {
       alert("Seul l'hôte peut commencer la partie.");
+      return;
+    }
+
+    if (currentRoom.players.length < 2) {
+      toast((t) => (
+        <span onClick={() => toast.dismiss(t.id)}>
+          Vous devez être au moins 2 joueurs pour commencer la partie.
+        </span>
+      ),
+      {
+        icon: "🚫",
+        duration: 3000,
+      });
       return;
     }
 
@@ -183,6 +198,21 @@ const RoomPage = () => {
 
   const renderRoomDetails = () => (
     <div className="room-details">
+
+      <div>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "var(--background)",
+              color: "var(--font)",
+              border: "1px solid var(--primary)",
+              fontSize: "1.2rem",
+            },
+          }}
+        />
+      </div>
+
       <button
         className="back-button"
         onClick={() => window.location.reload()}
