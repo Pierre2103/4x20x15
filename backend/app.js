@@ -561,13 +561,392 @@ socket.on("startGame", async ({ roomId }) => {
     }
   });
   
+  // AUTOROUTE
+  socket.on("startAutoroute", async ({ roomId, userId }) => {
+    try {
+      const gameRef = doc(db, "games", roomId);
+      const gameSnapshot = await getDoc(gameRef);
+      
+      if (!gameSnapshot.exists()) {
+        socket.emit("error", { message: "Partie introuvable" });
+        return;
+      }
+      
+      const game = gameSnapshot.data();
+      
+      // Vérifier que le joueur a perdu (normalement celui qui démarre l'autoroute)
+      if (!game.players[userId].hasLost) {
+        socket.emit("error", { message: "Seul le perdant peut démarrer l'autoroute" });
+        return;
+      }
+      
+      // Initialiser l'autoroute
+      if (!game.deck || game.deck.length < 5) {
+        socket.emit("error", { message: "Pas assez de cartes pour l'autoroute" });
+        return;
+      }
+      
+      // Tirer 5 cartes pour la rivière
+      const river = game.deck.splice(0, 5);
+      
+      // Initialiser l'état de l'autoroute
+      game.autoroute = {
+        inProgress: true,
+        aceValue: null, // Sera défini par le joueur
+        river: river,
+        currentPosition: null, // Sera défini après le choix de direction
+        direction: null, // "leftToRight" ou "rightToLeft"
+        guesses: [],
+        currentPlayerId: userId
+      };
+      
+      // Sauvegarder l'état
+      await setDoc(gameRef, game);
+      
+      // Notifier tous les joueurs
+      io.to(roomId).emit("autorouteStarted", {
+        river: river,
+        playerId: userId
+      });
+      
+    } catch (error) {
+      console.error("Erreur lors du démarrage de l'autoroute:", error);
+      socket.emit("error", { message: "Erreur lors du démarrage de l'autoroute" });
+    }
+  });
+  
+  socket.on("chooseAceValue", async ({ roomId, userId, aceValue }) => {
+    try {
+      if (aceValue !== 1 && aceValue !== 14) {
+        socket.emit("error", { message: "La valeur de l'As doit être 1 ou 14" });
+        return;
+      }
+      
+      const gameRef = doc(db, "games", roomId);
+      const gameSnapshot = await getDoc(gameRef);
+      
+      if (!gameSnapshot.exists()) {
+        socket.emit("error", { message: "Partie introuvable" });
+        return;
+      }
+      
+      const game = gameSnapshot.data();
+      
+      // Vérifier que l'autoroute est en cours
+      if (!game.autoroute || !game.autoroute.inProgress) {
+        socket.emit("error", { message: "Aucune autoroute en cours" });
+        return;
+      }
+      
+      // Vérifier que c'est bien le même joueur
+      if (game.autoroute.currentPlayerId !== userId) {
+        socket.emit("error", { message: "Ce n'est pas à vous de choisir" });
+        return;
+      }
+      
+      // Mettre à jour la valeur de l'As
+      game.autoroute.aceValue = aceValue;
+      
+      // Sauvegarder
+      await setDoc(gameRef, game);
+      
+      // Notifier tous les joueurs
+      io.to(roomId).emit("aceValueChosen", {
+        aceValue: aceValue,
+        playerId: userId
+      });
+      
+    } catch (error) {
+      console.error("Erreur lors du choix de la valeur de l'As:", error);
+      socket.emit("error", { message: "Erreur lors du choix de la valeur de l'As" });
+    }
+  });
+  
+  socket.on("chooseDirection", async ({ roomId, userId, direction }) => {
+    try {
+      if (direction !== "leftToRight" && direction !== "rightToLeft") {
+        socket.emit("error", { message: "Direction invalide" });
+        return;
+      }
+      
+      const gameRef = doc(db, "games", roomId);
+      const gameSnapshot = await getDoc(gameRef);
+      
+      if (!gameSnapshot.exists()) {
+        socket.emit("error", { message: "Partie introuvable" });
+        return;
+      }
+      
+      const game = gameSnapshot.data();
+      
+      // Vérifier que l'autoroute est en cours et que l'As a été choisi
+      if (!game.autoroute || !game.autoroute.inProgress || game.autoroute.aceValue === null) {
+        socket.emit("error", { message: "Autoroute non initialisée correctement" });
+        return;
+      }
+      
+      // Vérifier que c'est bien le même joueur
+      if (game.autoroute.currentPlayerId !== userId) {
+        socket.emit("error", { message: "Ce n'est pas à vous de choisir" });
+        return;
+      }
+      
+      // Mettre à jour la direction et la position de départ
+      game.autoroute.direction = direction;
+      game.autoroute.currentPosition = direction === "leftToRight" ? 0 : 4;
+      
+      // Sauvegarder
+      await setDoc(gameRef, game);
+      
+      // Notifier tous les joueurs
+      io.to(roomId).emit("directionChosen", {
+        direction: direction,
+        currentPosition: game.autoroute.currentPosition,
+        playerId: userId
+      });
+      
+    } catch (error) {
+      console.error("Erreur lors du choix de la direction:", error);
+      socket.emit("error", { message: "Erreur lors du choix de la direction" });
+    }
+  });
+  
+  socket.on("guessHigherLower", async ({ roomId, userId, guess }) => {
+    try {
+      if (guess !== "higher" && guess !== "lower") {
+        socket.emit("error", { message: "Choix invalide" });
+        return;
+      }
+      
+      const gameRef = doc(db, "games", roomId);
+      const gameSnapshot = await getDoc(gameRef);
+      
+      if (!gameSnapshot.exists()) {
+        socket.emit("error", { message: "Partie introuvable" });
+        return;
+      }
+      
+      const game = gameSnapshot.data();
+      
+      // Vérifier que l'autoroute est bien configurée
+      if (!game.autoroute || !game.autoroute.inProgress || 
+          game.autoroute.aceValue === null || game.autoroute.direction === null) {
+        socket.emit("error", { message: "Autoroute non initialisée correctement" });
+        return;
+      }
+      
+      // Vérifier que c'est bien le même joueur
+      if (game.autoroute.currentPlayerId !== userId) {
+        socket.emit("error", { message: "Ce n'est pas à vous de jouer" });
+        return;
+      }
+      
+      // Tirer une carte du deck
+      if (!game.deck || game.deck.length === 0) {
+        socket.emit("error", { message: "Plus de cartes dans le deck" });
+        return;
+      }
+      
+      const drawnCard = game.deck.shift();
+      const riverCard = game.autoroute.river[game.autoroute.currentPosition];
+      
+      // Comparer les valeurs (en tenant compte de la valeur de l'As)
+      const riverCardValue = getCardNumericValue(riverCard, game.autoroute.aceValue);
+      const drawnCardValue = getCardNumericValue(drawnCard, game.autoroute.aceValue);
+      
+      // Déterminer si la prédiction est correcte
+      let correct = false;
+      if (drawnCardValue === riverCardValue) {
+        // Égalité: continue et tout le monde boit
+        correct = true;
+        io.to(roomId).emit("everyoneDrinks", {
+          message: "Les cartes sont égales! Tout le monde boit sauf " + game.players[userId].username
+        });
+      } else if (guess === "higher" && drawnCardValue > riverCardValue) {
+        correct = true;
+      } else if (guess === "lower" && drawnCardValue < riverCardValue) {
+        correct = true;
+      }
+      
+      // Stocker l'historique du tour
+      game.autoroute.guesses.push({
+        position: game.autoroute.currentPosition,
+        riverCard: riverCard,
+        drawnCard: drawnCard,
+        guess: guess,
+        correct: correct
+      });
+      
+      // Si prédiction correcte, remplacer la carte de la rivière par la carte tirée
+      if (correct) {
+        // IMPORTANT: Remplacer la carte dans la rivière par celle qui a été tirée
 
-  
-  
+        // Mettre à jour la position
+        if (game.autoroute.direction === "leftToRight") {
+          game.autoroute.currentPosition++;
+        } else {
+          game.autoroute.currentPosition--;
+        }
+        
+        // Vérifier si l'autoroute est terminée
+        const finished = game.autoroute.direction === "leftToRight" 
+          ? game.autoroute.currentPosition >= 5 
+          : game.autoroute.currentPosition < 0;
+          
+        if (finished) {
+          game.autoroute.inProgress = false;
+          io.to(roomId).emit("autorouteCompleted", {
+            message: game.players[userId].username + " a réussi l'autoroute!",
+            guesses: game.autoroute.guesses
+          });
+        } else {
+          io.to(roomId).emit("guessResult", {
+            correct: true,
+            drawnCard: drawnCard,
+            nextPosition: game.autoroute.currentPosition,
+            playerId: userId,
+            guessHistory: game.autoroute.guesses,
+            updatedRiver: game.autoroute.river  // Send the updated river array
+          });
+        }
+      } else {
+        // Pas correct, on recommence du début
+        if (game.autoroute.direction === "leftToRight") {
+          game.autoroute.currentPosition = 0;
+        } else {
+          game.autoroute.currentPosition = 4;
+        }
+        
+        io.to(roomId).emit("guessResult", {
+          correct: false,
+          drawnCard: drawnCard,
+          nextPosition: game.autoroute.currentPosition,
+          playerId: userId,
+          message: game.players[userId].username + " s'est trompé et doit boire!",
+          guessHistory: game.autoroute.guesses,
+          updatedRiver: game.autoroute.river  // Also send river here for consistency
+        });
+      }
+      
+      // Sauvegarder
+      await setDoc(gameRef, game);
+      
+    } catch (error) {
+      console.error("Erreur lors de la prédiction:", error);
+      socket.emit("error", { message: "Erreur lors de la prédiction" });
+    }
+  });
+
+  // Add a new socket event to draw a card from the deck
+  socket.on("drawCard", async ({ roomId, userId }) => {
+    try {
+      const gameRef = doc(db, "games", roomId);
+      const gameSnapshot = await getDoc(gameRef);
+      
+      if (!gameSnapshot.exists()) {
+        socket.emit("error", { message: "Partie introuvable" });
+        return;
+      }
+      
+      const game = gameSnapshot.data();
+      
+      // Verify autoroute is in progress
+      if (!game.autoroute || !game.autoroute.inProgress) {
+        socket.emit("error", { message: "Aucune autoroute en cours" });
+        return;
+      }
+      
+      // Verify it's this player's turn
+      if (game.autoroute.currentPlayerId !== userId) {
+        socket.emit("error", { message: "Ce n'est pas à vous de jouer" });
+        return;
+      }
+      
+      // Draw a card (don't remove it from the deck yet - that happens with guessHigherLower)
+      if (!game.deck || game.deck.length === 0) {
+        socket.emit("error", { message: "Plus de cartes dans le deck" });
+        return;
+      }
+      
+      // Send only to the requesting player
+      socket.emit("cardDrawn", { 
+        card: game.deck[0] // Send first card in deck but don't remove it yet
+      });
+      
+    } catch (error) {
+      console.error("Erreur lors du tirage de carte:", error);
+      socket.emit("error", { message: "Erreur lors du tirage de carte" });
+    }
+  });
+
+  // Add a new socket event to handle restarting the autoroute
+  socket.on("restartAutoroute", async ({ roomId, userId }) => {
+    try {
+      const gameRef = doc(db, "games", roomId);
+      const gameSnapshot = await getDoc(gameRef);
+      
+      if (!gameSnapshot.exists()) {
+        socket.emit("error", { message: "Partie introuvable" });
+        return;
+      }
+      
+      const game = gameSnapshot.data();
+      
+      // Verify autoroute is in progress
+      if (!game.autoroute || !game.autoroute.inProgress) {
+        socket.emit("error", { message: "Aucune autoroute en cours" });
+        return;
+      }
+      
+      // Verify it's this player's turn
+      if (game.autoroute.currentPlayerId !== userId) {
+        socket.emit("error", { message: "Ce n'est pas à vous de jouer" });
+        return;
+      }
+
+      for (let i = 0; i < game.autoroute.guesses.length; i++) {
+        game.autoroute.river[game.autoroute.guesses[i].position] = game.autoroute.guesses[i].drawnCard;
+      }
+      
+      // Clear guess history but keep the river state
+      game.autoroute.guesses = [];
+      
+      // Reset position based on direction
+      game.autoroute.currentPosition = game.autoroute.direction === "leftToRight" ? 0 : 4;
+      
+      // Save the updated game state
+      await setDoc(gameRef, game);
+      
+      // Send the updated state to all clients
+      io.to(roomId).emit("autorouteRestarted", {
+        nextPosition: game.autoroute.currentPosition,
+        updatedRiver: game.autoroute.river
+      });
+      
+    } catch (error) {
+      console.error("Erreur lors du redémarrage de l'autoroute:", error);
+      socket.emit("error", { message: "Erreur lors du redémarrage de l'autoroute" });
+    }
+  });
+
+  // Fonction utilitaire pour obtenir la valeur numérique d'une carte
+  function getCardNumericValue(card, aceValue) {
+    switch (card.value) {
+      case "A":
+        return aceValue; // 1 ou 14 selon le choix du joueur
+      case "J":
+        return 11;
+      case "Q":
+        return 12;
+      case "K":
+        return 13;
+      default:
+        return parseInt(card.value, 10);
+    }
+  }
 
   function drawCards(deck, count) {
-    return deck.splice(0, count
-    );
+    return deck.splice(0, count);
   }
   
 
