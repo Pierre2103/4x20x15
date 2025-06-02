@@ -1,17 +1,17 @@
 // src/pages/GamePage.js
 import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { toast, Toaster } from "react-hot-toast"; // Import react-hot-toast
 import "../styles/GamePage.scss";
 import confetti from "canvas-confetti"; // Import canvas-confetti
-
 
 // Socket global
 const socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:3001");
 
 const GamePage = () => {
   const { id: roomId } = useParams();
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [game, setGame] = useState(null);
   const [orderedUsernames, setOrderedUsernames] = useState([]);
@@ -29,7 +29,8 @@ const GamePage = () => {
     guessHistory: [],
     drawnCard: null,         // Store the drawn card
     showRestartOverlay: false, // Flag for showing the restart overlay
-    isCompleted: false // Flag for showing the completed message
+    isCompleted: false, // Flag for showing the completed message
+    roomId: null // Store roomId for navigation
   });
   const [dragState, setDragState] = useState({
     isDragging: false,
@@ -172,7 +173,7 @@ const GamePage = () => {
     });
 
     socket.on("autorouteCompleted", (data) => {
-      toast(data.message, { duration: 5000 });
+      toast.success(data.message);
 
       // Trigger confetti
       confetti({
@@ -181,20 +182,38 @@ const GamePage = () => {
         origin: { y: 0.6 }, // Adjust the origin to make it look better
       });
 
-      setAutorouteState({
-        active: false,
-        aceSelection: false,
-        directionSelection: false,
-        guessing: false,
-        river: [],
-        aceValue: null,
-        direction: null,
-        currentPosition: null,
-        guessHistory: [],
-        drawnCard: null,
-        showRestartOverlay: false,
-        isCompleted: true // Set completed state
-      });
+      if (data.roomId) {
+        setAutorouteState({
+          active: false,
+          aceSelection: false,
+          directionSelection: false,
+          guessing: false,
+          river: [],
+          aceValue: null,
+          direction: null,
+          currentPosition: null,
+          guessHistory: [],
+          drawnCard: null,
+          showRestartOverlay: false,
+          isCompleted: true,
+          roomId: data.roomId // Store roomId for navigation
+        });
+      } else {
+        setAutorouteState({
+          active: false,
+          aceSelection: false,
+          directionSelection: false,
+          guessing: false,
+          river: [],
+          aceValue: null,
+          direction: null,
+          currentPosition: null,
+          guessHistory: [],
+          drawnCard: null,
+          showRestartOverlay: false,
+          isCompleted: true
+        });
+      }
     });
 
     socket.on("everyoneDrinks", (data) => {
@@ -207,6 +226,16 @@ const GamePage = () => {
           icon: "🍻",
           duration: 3000,
         });
+    });
+
+    socket.on("gameDeleted", (data) => {
+      toast.success(data.message);
+      // Force navigation using window.location.href instead of navigate()
+      if (data.roomId) {
+        window.location.href = `/room/${data.roomId}`;
+      } else {
+        window.location.href = "/room";
+      }
     });
 
     // Add this new listener for autoroute restart
@@ -232,9 +261,10 @@ const GamePage = () => {
       socket.off("guessResult");
       socket.off("autorouteCompleted");
       socket.off("everyoneDrinks");
+      socket.off("gameDeleted");
       socket.off("autorouteRestarted"); // Don't forget to remove this listener
     };
-  }, [currentUser, roomId]);
+  }, [currentUser, roomId, navigate]);
 
   // Jouer une carte
   const playCard = (card) => {
@@ -375,6 +405,12 @@ const GamePage = () => {
       roomId,
       userId: currentUser.userId
     });
+  };
+
+  // Modify the function to return to room - use direct window.location instead of navigate
+  const returnToRoom = () => {
+    socket.emit("deleteGame", { roomId });
+    window.location.href = "/room"; // Force redirect to main room page
   };
 
   if (!game) {

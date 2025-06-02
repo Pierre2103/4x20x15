@@ -153,6 +153,10 @@ io.on("connection", (socket) => {
     }
   });
 
+socket.on("joinSocketRoom", ({ roomId }) => {
+  socket.join(roomId);  
+});
+
 
   //? REJOINDRE UNE ROOM
   socket.on("joinRoom", async ({ roomId, userId }) => {
@@ -371,7 +375,13 @@ socket.on("startGame", async ({ roomId }) => {
       players,
       gameOver: false,
     };
-  
+
+    // Update the room status in memory
+    room.status = "playing";
+    
+    // Update the room status in Firestore
+    await updateDoc(doc(db, "rooms", roomId), { status: "playing" });
+
     await setDoc(doc(collection(db, "games"), roomId), game);
     io.to(roomId).emit("gameStarted", game);
   
@@ -797,8 +807,27 @@ socket.on("startGame", async ({ roomId }) => {
           game.autoroute.inProgress = false;
           io.to(roomId).emit("autorouteCompleted", {
             message: game.players[userId].username + " a réussi l'autoroute!",
-            guesses: game.autoroute.guesses
+            guesses: game.autoroute.guesses,
+            roomId: roomId // Include roomId for redirect
           });
+
+          // After autoroute completion, delete the game and redirect players
+          setTimeout(() => {
+            // Delete the game document
+            deleteDoc(doc(db, "games", roomId))
+              .then(async () => {                // Notify all players to return to the room page
+                io.to(roomId).emit("gameDeleted", {
+                  message: "L'autoroute est terminée. Retour à la page de la room.",
+                  roomId: roomId
+                });
+                            // Update the room status in memory
+                
+                // Update the room status in Firestore
+                await updateDoc(doc(db, "rooms", roomId), { status: "waiting" });
+                io.to(roomId).emit("roomUpdated", room);
+              })
+              .catch(err => console.error(`Error deleting game document: ${err.message}`));
+          }, 5000); // Give players 5 seconds to see the completion before redirecting
         } else {
           io.to(roomId).emit("guessResult", {
             correct: true,
@@ -1023,7 +1052,62 @@ socket.on("startGame", async ({ roomId }) => {
     return total + parseInt(card.value || 10);
   };
 
+  // Direct room lookup by ID - more efficient than searching
+  socket.on("getRoom", async ({ roomId }) => {
+    try {
+      if (!roomId) {
+        socket.emit("error", { message: "Room ID manquant" });
+        return;
+      }
+            
+      // First check memory cache
+      let room = activeRooms[roomId];
+      
+      // If not in memory, check Firestore
+      if (!room) {
+        const roomRef = doc(db, "rooms", roomId);
+        const roomSnapshot = await getDoc(roomRef);
+        
+        if (roomSnapshot.exists()) {
+          room = roomSnapshot.data();
+          activeRooms[roomId] = room; // Cache for future
+        } else {
+          console.log(`Room ${roomId} not found`);
+        }
+      }
+      
+      socket.emit("roomDetails", { room });
+    } catch (error) {
+      console.error("Error getting room:", error.message);
+      socket.emit("error", { message: "Error getting room details" });
+    }
+  });
 
+  // Add a deleteGame handler that includes roomId in response
+  socket.on("deleteGame", async ({ roomId }) => {
+    try {
+      const gameRef = doc(db, "games", roomId);
+      const gameSnapshot = await getDoc(gameRef);
+
+      if (!gameSnapshot.exists()) {
+        socket.emit("error", { message: "Partie introuvable" });
+        return;
+      }
+
+      // Delete the game from Firestore
+      await deleteDoc(gameRef);
+
+      // Notify all players to return to the room page WITH roomId
+      io.to(roomId).emit("gameDeleted", {
+        message: "La partie est terminée. Retour à la page de la room.",
+        roomId: roomId // Include roomId for direct navigation
+      });
+
+    } catch (error) {
+      console.error("Erreur lors de la suppression de la partie:", error.message);
+      socket.emit("error", { message: "Erreur lors de la suppression de la partie" });
+    }
+  });
 
 });
 

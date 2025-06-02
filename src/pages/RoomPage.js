@@ -2,10 +2,12 @@
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { update as jdenticonUpdate } from "jdenticon";
+import { useParams } from "react-router-dom"; // Add this import
 import "../styles/RoomPage.scss";
 import arrow_back from "../img/icons/arrow-back.svg";
 import cancel from "../img/icons/cancel.svg";
 import { toast, Toaster } from "react-hot-toast"; // Import react-hot-toast
+import { getSocket, joinSocketRoom } from "../services/socketService.js";
 
 console.log("URL du socket:", process.env.REACT_APP_SOCKET_URL || "http://localhost:3001");
 const socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:3001");
@@ -14,8 +16,13 @@ const socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:3001");
 // });
 
 const RoomPage = () => {
-  const [roomId, setRoomId] = useState("");
+  const { roomId: urlRoomId } = useParams(); // Get roomId from URL if available
+  const [roomId, setRoomId] = useState(urlRoomId || "");
   const [currentRoom, setCurrentRoom] = useState(null);
+  const [loading, setLoading] = useState(!!urlRoomId); // Set loading if we have a roomId in URL
+
+  // Get socket from service
+  const socket = getSocket();
 
   // Crée une room
   const createRoom = () => {
@@ -31,6 +38,12 @@ const RoomPage = () => {
     });
   };
 
+  useEffect(() => {
+    if (currentRoom && currentRoom.id) {
+      joinSocketRoom(currentRoom.id);
+    }
+  }, [currentRoom]);
+
   // Rejoint une room
   const joinRoom = () => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -44,6 +57,8 @@ const RoomPage = () => {
       roomId,
       userId: storedUser.userId,
     });
+
+    joinSocketRoom(roomId);
   };
 
   // Supprime un joueur de la room
@@ -92,13 +107,10 @@ const RoomPage = () => {
         ...prevRoom,
         id: data.roomId,
       }));
-
-      jdenticonUpdate(".avatar");
     });
 
     socket.on("roomUpdated", (data) => {
       setCurrentRoom(data);
-      jdenticonUpdate(".avatar");
     });
 
     socket.on("gameStarted", (data) => {
@@ -132,7 +144,19 @@ const RoomPage = () => {
       console.error("Connection error:", err);
     });
 
-    return () => socket.off(); // Nettoyer les listeners pour éviter les fuites
+    return () => {
+      socket.off("roomCreated");
+      socket.off("roomUpdated");
+      socket.off("gameStarted");
+      socket.off("removedFromRoom");
+      socket.off("connect_error");      
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentRoom) {
+      jdenticonUpdate(".avatar");
+    }
   }, [currentRoom]);
 
   // Enregistre l'utilisateur connecté
@@ -162,6 +186,40 @@ const RoomPage = () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [currentRoom]);
+
+  // Load room directly if roomId is in URL
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (urlRoomId && storedUser && storedUser.userId) {
+      setLoading(true);
+      
+      // Register user first
+      socket.emit("registerUser", storedUser.userId);
+      
+      // Get room by direct ID
+      socket.emit("getRoom", { roomId: urlRoomId });
+      
+      socket.on("roomDetails", (data) => {
+        setLoading(false);
+        if (data && data.room) {
+          setCurrentRoom(data.room);
+          
+          // Try to update jdenticon after DOM is ready
+          setTimeout(() => {
+            try {
+              jdenticonUpdate(".avatar");
+            } catch (err) {
+              console.warn("Failed to update jdenticon:", err);
+            }
+          }, 100);
+        }
+      });
+      
+      return () => {
+        socket.off("roomDetails");
+      };
+    }
+  }, [urlRoomId]);
 
   const renderRoomInput = () => (
     <div>
@@ -259,7 +317,15 @@ const RoomPage = () => {
     </div>
   );
 
-  return <div className="room-page">{currentRoom ? renderRoomDetails() : renderRoomInput()}</div>;
+  return (
+    <div className="room-page">
+      {loading ? (
+        <div className="loading">Chargement de la room...</div>
+      ) : (
+        currentRoom ? renderRoomDetails() : renderRoomInput()
+      )}
+    </div>
+  );
 };
 
 export default RoomPage;
