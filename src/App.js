@@ -31,6 +31,10 @@ const App = () => {
         path="/room"
         element={isAuthenticated ? <RoomPage /> : <Navigate to="/" />}
       />
+      <Route 
+        path="/room/:roomId"
+        element={isAuthenticated ? <RoomPage /> : <Navigate to="/" />}
+      />
       <Route
         path="/game/:id"
         element={isAuthenticated ? <GamePage /> : <Navigate to="/" />}

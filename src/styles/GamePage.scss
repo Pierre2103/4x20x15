@@ -244,3 +244,549 @@
     }
   }
 }
+
+// Autoroute styles
+.autoroute-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.start-autoroute-btn {
+  padding: 10px 20px;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+// Ace selection
+.ace-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+  
+  h3 {
+    margin-bottom: 15px;
+  }
+}
+
+.ace-options {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.ace-card {
+  width: 100px;
+  height: 150px;
+  border-radius: 10px;
+  background-color: white;
+  color: red;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid var(--primary);
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+  
+  &:hover {
+    transform: translateY(-5px);
+  }
+  
+  .card-value {
+    font-size: 2rem;
+    font-weight: bold;
+  }
+  
+  .card-suit {
+    font-size: 2.5rem;
+  }
+}
+
+// Direction selection
+.direction-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+  
+  h3 {
+    margin-bottom: 15px;
+  }
+  
+  // Show the river horizontally for direction selection
+  .direction-river {
+    flex-direction: row;
+    justify-content: center;
+    margin: 25px 0;
+    gap: 15px;
+    // overflow-x: auto;
+    padding: 15px 5px;
+  }
+}
+
+.direction-options {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+}
+
+.direction-btn {
+  padding: 15px 10px;
+  background-color: var(--background);
+  color: var(--font);
+  border: 2px solid var(--primary);
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 45%;
+  
+  .direction-arrow {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+  }
+  
+  .direction-label {
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+  
+  .direction-start-indicator {
+    font-size: 0.8rem;
+    color: var(--primary);
+    font-style: italic;
+  }
+  
+  &:hover {
+    background-color: var(--primary);
+    color: white;
+    
+    .direction-start-indicator {
+      color: white;
+    }
+  }
+}
+
+// Guessing game
+.guessing-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.autoroute-deck {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  touch-action: none; // Prevents scrolling on touch
+
+  .indications-align {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 2rem;
+    align-items: center;
+  }
+}
+
+.deck-card {
+  width: 100px;
+  height: 150px;
+  border-radius: 10px;
+  background-color: white;
+  border: 2px solid var(--primary);
+  margin-bottom: 15px;
+  cursor: grab;
+  transition: transform 0.2s ease;
+  will-change: transform;
+  
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.card-back {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background-color: var(--primary);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(255, 255, 255, 0.1) 10px,
+    rgba(255, 255, 255, 0.1) 20px
+  );
+}
+
+.swipe-instruction {
+  font-size: 0.9rem;
+  text-align: center;
+  color: var(--font-secondary);
+  margin-bottom: 20px;
+}
+
+.autoroute-river {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  width: 70vw;
+
+  &.horizontal {
+    overflow-x: auto; // Allow horizontal scrolling if needed
+  }
+
+  &.vertical {
+    width: 100%;
+    height: 50vh;
+    overflow-y: auto; // Allow vertical scrolling if needed
+    padding-bottom: 80px;
+  }
+}
+
+.river-card {
+  width: 100px;
+  height: 150px;
+  border-radius: 10px;
+  background-color: white;
+  border: 2px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
+  
+  &.current {
+    border-color: var(--primary);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  &.red {
+    color: red;
+  }
+  
+  &.black {
+    color: black;
+  }
+  
+  .card-value {
+    font-size: 2rem;
+    font-weight: bold;
+  }
+  
+  .card-suit {
+    font-size: 2.5rem;
+  }
+}
+
+// Updated river card container
+.river-card-container {
+  display: flex;
+  align-items: center;
+  width: 70vw;
+  justify-content: center;
+  position: relative;
+  margin: 5px 0;
+}
+
+// Preview cards
+.preview-card {
+  width: 80px;
+  height: 120px;
+  border-radius: 8px;
+  background-color: #fff;
+  border: 2px solid var(--primary);
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+  z-index: 2;
+  
+  .card-back {
+    width: 90%;
+    height: 90%;
+    border-radius: 5px;
+    background-color: var(--primary);
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(255, 255, 255, 0.1) 10px,
+      rgba(255, 255, 255, 0.1) 20px
+    );
+  }
+  
+  &.preview-left {
+    right: 75%; // Position to the left of the river card
+    animation: slideInLeft 0.3s ease;
+  }
+  
+  &.preview-right {
+    left: 75%; // Position to the right of the river card
+    animation: slideInRight 0.3s ease;
+  }
+}
+
+// Animations for the preview cards
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 0.8;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 0.8;
+    transform: translateX(0);
+  }
+}
+
+// Drawn card styles
+.drawn-card {
+  width: 100px;
+  height: 100%;
+  border-radius: 8px;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  
+  &.red {
+    color: red;
+  }
+  
+  &.black {
+    color: black;
+  }
+  
+  .card-value {
+    font-size: 2rem;
+    font-weight: bold;
+    height: 40%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .card-suit {
+    font-size: 2.5rem;
+    height: 40%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+// Drawn card in preview
+.drawn-preview-card {
+  width: 80px;
+  height: 120px;
+  border-radius: 8px;
+  background-color: white;
+  border: 2px solid var(--primary);
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s ease;
+  z-index: 2;
+  
+  &.red {
+    color: red;
+  }
+  
+  &.black {
+    color: black;
+  }
+  
+  .card-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+  
+  .card-suit {
+    font-size: 2rem;
+  }
+  
+  &.preview-left {
+    right: 75%;
+    animation: slideInLeft 0.3s ease;
+  }
+  
+  &.preview-right {
+    left: 75%;
+    animation: slideInRight 0.3s ease;
+  }
+}
+
+// Guessed card styles for left/right display
+.guessed-card-left, .guessed-card-right {
+  width: 80px;
+  height: 120px;
+  border-radius: 8px;
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+  background-color: white;
+  border: 2px solid #4caf50; // Green border for correct guesses
+  
+  .drawn-card-face {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    
+    &.red {
+      color: red;
+    }
+    
+    &.black {
+      color: black;
+    }
+    
+    .card-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    
+    .card-suit {
+      font-size: 2rem;
+    }
+  }
+}
+
+// Position the guessed cards on the left/right
+.guessed-card-left {
+  right: 75%;
+  &::after {
+    content: "✓";
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: #4caf50;
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+}
+
+.guessed-card-right {
+  left: 75%;
+  &::after {
+    content: "✓";
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: #4caf50;
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+}
+
+// Restart overlay
+.restart-overlay {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  cursor: pointer;
+  animation: fadeIn 0.3s ease;
+
+  .restart-info {
+    font-size: 1rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+    padding: 20px 40px;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+
+  .restart-message {
+    font-size: 2rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+    padding: 20px 40px;
+    border: 2px solid white;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.3);
+    animation: pulse 2s infinite;
+  }
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.guess-direction {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
